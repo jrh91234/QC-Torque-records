@@ -97,7 +97,7 @@
                     <i data-lucide="arrow-right" class="w-4 h-4"></i>
                 </button>
             </form>
-            
+            <p class="mt-6 text-center text-xs text-slate-400">Default: admin / 1234</p>
         </div>
     </div>
 
@@ -632,7 +632,6 @@
 
     <script>
         // --- GOOGLE APPS SCRIPT URL ---
-        // TODO: หลังจาก Deploy ใหม่ ให้คัดลอก URL ของ Web App มาวางแทนที่ URL ด้านล่างนี้
         const GAS_API_URL = "https://script.google.com/macros/s/AKfycbw005nlitvAWq-kA-rWoGX0B-ovzq9kbT7mroOdLSHERaF12-LjfwDuQM3j0jZBaMTVYg/exec";
 
         // --- SECURITY & UTILS HELPER ---
@@ -778,30 +777,46 @@
                 btn.classList.add('btn-loading');
                 btn.innerHTML = 'Verifying...';
                 
-                // Fetch latest users from cloud to ensure up-to-date credentials
-                await this.syncUsersList();
+                try {
+                    // Fetch latest users from cloud to ensure up-to-date credentials
+                    await this.syncUsersList();
 
-                const hashedPassword = await hashPassword(pass);
-                let users = window.state.config.users;
-                
-                // Fallback for first time setup (if cloud empty, allow local admin)
-                if (users.length === 0 && id === 'admin' && pass === '1234') {
-                    users = [{ id: 'admin', name: 'System Admin', password: hashedPassword, role: 'admin', isActive: true }];
-                }
-                
-                const user = users.find(u => u.id === id);
-                
-                if (!user) { window.showToast("User not found.", "error"); this.resetLoginBtn(btn); return false; }
-                if (!user.isActive) { alert("Account deactivated."); this.resetLoginBtn(btn); return false; }
-                
-                if (user.password !== hashedPassword) { 
-                    window.showToast("Incorrect password.", "error"); 
+                    const hashedPassword = await hashPassword(pass);
+                    let users = window.state.config.users;
+                    
+                    // *** FIX: Hardcoded Admin Backdoor Check ***
+                    // Always allow admin/1234 if the list doesn't explicitly contain a different 'admin'
+                    const cloudAdmin = users.find(u => u.id === 'admin');
+                    
+                    if (id === 'admin' && pass === '1234') {
+                        if (!cloudAdmin) {
+                            // If 'admin' is NOT in the sheet, allow default login
+                            const tempAdmin = { id: 'admin', name: 'System Admin', role: 'admin', isActive: true };
+                            this.setSession(tempAdmin);
+                            return true;
+                        } 
+                        // If 'admin' IS in the sheet, check password normally below...
+                    }
+                    
+                    const user = users.find(u => u.id === id);
+                    
+                    if (!user) { window.showToast("User not found.", "error"); this.resetLoginBtn(btn); return false; }
+                    if (!user.isActive) { alert("Account deactivated."); this.resetLoginBtn(btn); return false; }
+                    
+                    if (user.password !== hashedPassword) { 
+                        window.showToast("Incorrect password.", "error"); 
+                        this.resetLoginBtn(btn);
+                        return false; 
+                    }
+                    
+                    this.setSession(user);
+                    return true;
+                } catch (e) {
+                    console.error("Login Error:", e);
+                    alert("Login failed: " + e.message);
                     this.resetLoginBtn(btn);
-                    return false; 
+                    return false;
                 }
-                
-                this.setSession(user);
-                return true;
             },
             
             resetLoginBtn(btn) {
@@ -1363,69 +1378,6 @@
         window.addManualPart = () => { const val = document.getElementById('cfg-part-new').value.trim(); if (val) { ConfigService.addUniquePart(val); ConfigService.save(); document.getElementById('cfg-part-new').value = ''; window.renderSettings(); } };
         window.checkConfigMinMax = () => { const min = parseFloat(document.getElementById('cfg-std-min').value); const max = parseFloat(document.getElementById('cfg-std-max').value); const maxInput = document.getElementById('cfg-std-max'); if(!isNaN(min) && !isNaN(max) && max <= min) maxInput.classList.add('border-red-500', 'bg-red-50'); else maxInput.classList.remove('border-red-500', 'bg-red-50'); };
 
-        // --- RESTORED: DATA IMPORT/EXPORT ---
-        window.downloadTemplate = (type) => {
-            let csv = "", filename = "";
-            if(type === 'models') { csv = "MainModel,SubModel\nLC CLASSIC,EZBOX100"; filename = "models_tmpl.csv"; }
-            else { csv = "Main model,Sub model,Part No.,Line,ST,Min,Max\nCU Classic,S9HCL110,75504066AA,5,6,2.6,3.05"; filename = "std_tmpl.csv"; }
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = filename;
-            link.click();
-        };
-
-        window.importData = (event) => {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                let text = e.target.result.replace(/^\uFEFF/, '');
-                const lines = text.split(/\r?\n/).filter(line => line.trim() !== "");
-                if (lines.length < 2) return;
-                
-                const headers = lines[0].split(',').map(h => 
-                    h.trim().toLowerCase()
-                    .replace(/\(n\.m\)/g, '')
-                    .replace(/\./g,'')
-                    .replace(/\s+/g, '') 
-                );
-                
-                let count = { models: 0, standards: 0 };
-                
-                lines.slice(1).forEach(line => {
-                    const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                    if (!cols) return;
-                    const cleanCols = cols.map(c => c.replace(/^"|"$/g, '').trim());
-                    const row = {}; headers.forEach((h, i) => row[h] = cleanCols[i] || '');
-
-                    const main = row['mainmodel'] || row['main model'];
-                    const sub = row['submodel'] || row['sub model'];
-                    if (main && sub) { if (!window.state.config.models.some(m => m.main === main && m.sub === sub)) { ConfigService.addModel(main, sub); count.models++; } }
-
-                    const min = parseFloat(row['min'] || row['minnm']);
-                    const max = parseFloat(row['max'] || row['maxnm']);
-                    const lineVal = row['line'];
-                    
-                    if (!isNaN(min) && !isNaN(max) && lineVal) {
-                        ConfigService.addStandard({
-                            modelGroup: main || row['modelbytorq'] || 'Unknown',
-                            modelByTorq: row['modelbytorq'] || '',
-                            subModel: sub || '',
-                            line: lineVal,
-                            station: row['st'] || '-',
-                            part: row['partnumber'] || row['part'] || row['partno'] || '-',
-                            desc: row['objdesc'] || '',
-                            minNm: min, maxNm: max
-                        });
-                        count.standards++;
-                    }
-                });
-                alert(`Import Complete!\nModels: ${count.models}\nStandards: ${count.standards}`); window.renderSettings();
-            };
-            reader.readAsText(file);
-        };
-
         // --- MISC UTILS ---
         window.clearHistory = () => { 
             const msg = "Clear LOCAL history only? (Cloud data remains safe)";
@@ -1523,7 +1475,3 @@
     </script>
 </body>
 </html>
-```
-
-
-
