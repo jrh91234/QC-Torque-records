@@ -751,9 +751,15 @@
 
             // --- New User Management Methods ---
             async getUsers() {
-                const response = await fetch(`${GAS_API_URL}?action=get_users`);
-                const data = await response.json();
-                return data;
+                try {
+                    const response = await fetch(`${GAS_API_URL}?action=get_users`);
+                    const data = await response.json();
+                    // ตรวจสอบว่าค่าที่ได้เป็น Array หรือไม่ ถ้าไม่ใช่ (เช่น เป็น error object) ให้คืนค่า array ว่าง
+                    return Array.isArray(data) ? data : [];
+                } catch (e) {
+                    console.error("getUsers fetch error:", e);
+                    return [];
+                }
             },
 
             async saveUser(user) {
@@ -783,6 +789,8 @@
 
                     const hashedPassword = await hashPassword(pass);
                     let users = window.state.config.users;
+                    // ป้องกัน error users.find โดยตรวจสอบว่าเป็น array หรือไม่ ถ้าไม่ให้กำหนดเป็น array ว่าง
+                    if (!Array.isArray(users)) users = [];
                     
                     // *** FIX: Hardcoded Admin Backdoor Check ***
                     // Always allow admin/1234 if the list doesn't explicitly contain a different 'admin'
@@ -919,8 +927,13 @@
 
             async syncUsersList() {
                 try {
-                    const users = await Service.getUsers();
-                    window.state.config.users = users || [];
+                    let users = await Service.getUsers();
+                    // ตรวจสอบความถูกต้องของข้อมูล (ป้องกัน Error .filter)
+                    if (!Array.isArray(users)) {
+                        console.error("API did not return an array of users:", users);
+                        users = [];
+                    }
+                    window.state.config.users = users;
                     this.renderUsersTable();
                     
                     const activeUsers = window.state.config.users.filter(u => u.isActive);
