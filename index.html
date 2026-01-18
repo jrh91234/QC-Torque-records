@@ -337,7 +337,7 @@
             <!-- TAB: USERS (LOGIN SYSTEM) -->
             <div id="settings-users" class="settings-content hidden bg-white p-6 rounded-xl border border-slate-200">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-bold text-slate-700">User Management (Cloud)</h3>
+                    <h3 class="font-bold text-slate-700">User Management (Local)</h3>
                     <div class="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">
                         <i data-lucide="info" class="w-3 h-3 inline"></i> Only Admins can manage users
                     </div>
@@ -369,7 +369,7 @@
                         </div>
                     </div>
                     <button onclick="AuthManager.saveUser()" id="btn-save-user" class="mt-4 w-full md:w-auto px-6 py-2.5 bg-blue-600 text-white rounded-md text-sm font-bold hover:bg-blue-700 shadow-sm transition flex items-center justify-center gap-2">
-                        Save to Cloud
+                        Save User
                     </button>
                 </div>
                 
@@ -677,21 +677,28 @@
             },
 
             async saveRecord(record) {
+                // Try sending to Google Sheets
                 try {
                     const payload = { action: 'save_record', payload: record };
+                    
+                    // Note: GAS POST requests often require follow redirects or specific content-type handling
+                    // Using text/plain avoids CORS preflight issues sometimes
                     const response = await fetch(GAS_API_URL, {
                         method: 'POST',
                         body: JSON.stringify(payload)
                     });
+                    
                     const result = await response.json();
+                    
                     if(result.status === 'success') {
                         window.showToast("Saved to Google Sheets!", "success");
-                        this.subscribeHistory(); 
+                        this.subscribeHistory(); // Reload
                     } else {
                         throw new Error(result.message || "Unknown Error");
                     }
                 } catch (e) {
                     console.error("Save Error (Cloud):", e);
+                    // Fallback to local
                     this.saveLocal(record);
                 }
             },
@@ -718,6 +725,7 @@
                     window.showToast("Deleted local record", "undo");
                     return;
                 }
+
                 try {
                     await fetch(GAS_API_URL, {
                         method: 'POST',
@@ -726,16 +734,38 @@
                     window.showToast("Deleted from Sheet", "success");
                     this.subscribeHistory();
                 } catch(e) {
+                    console.error(e);
                     window.showToast("Delete failed (Check Connection)", "error");
                 }
             },
             
+            async updateRecord(id, data) {
+                 if (String(id).startsWith('local-')) {
+                     let local = JSON.parse(localStorage.getItem('torque_records') || '[]');
+                     const idx = local.findIndex(r => r.id === id);
+                     if (idx !== -1) {
+                         local[idx] = { ...local[idx], ...data };
+                         localStorage.setItem('torque_records', JSON.stringify(local));
+                         this.subscribeHistory();
+                     }
+                 } else {
+                     alert("Editing Cloud records directly is not supported. Please delete and re-enter.");
+                 }
+            },
+
             async subscribeHistory() {
                 try {
+                    // Fetch from GAS (GET request)
                     const response = await fetch(`${GAS_API_URL}?action=read_history`);
                     const cloudData = await response.json();
+                    
+                    // Get Local Data
                     const localData = JSON.parse(localStorage.getItem('torque_records') || '[]');
+                    
+                    // Merge: Local first, then Cloud
+                    // Note: GAS returns data sorted by date usually, but we will sort again in frontend
                     window.state.historyData = [...localData, ...cloudData];
+                    
                     window.updateDashboard();
                     window.renderHistoryTable();
                     window.state.isOffline = false;
@@ -744,87 +774,43 @@
                     console.error("Fetch Error:", e);
                     window.state.isOffline = true;
                     window.updateStatusUI(false);
+                    // Show local only
                     window.state.historyData = JSON.parse(localStorage.getItem('torque_records') || '[]');
                     window.renderHistoryTable();
                 }
-            },
-
-            // --- New User Management Methods ---
-            async getUsers() {
-                try {
-                    const response = await fetch(`${GAS_API_URL}?action=get_users`);
-                    const data = await response.json();
-                    // ตรวจสอบว่าค่าที่ได้เป็น Array หรือไม่ ถ้าไม่ใช่ (เช่น เป็น error object) ให้คืนค่า array ว่าง
-                    return Array.isArray(data) ? data : [];
-                } catch (e) {
-                    console.error("getUsers fetch error:", e);
-                    return [];
-                }
-            },
-
-            async saveUser(user) {
-                const response = await fetch(GAS_API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'save_user', payload: user })
-                });
-                const result = await response.json();
-                if(result.status !== 'success') throw new Error(result.message);
             }
         };
 
-        // --- AUTH & USER MANAGEMENT (Cloud Based) ---
+        // --- AUTH & USER MANAGEMENT (Local Only) ---
         const AuthManager = {
-            async init() {
-                await this.syncUsersList();
-            },
-
             async login(id, pass) {
                 const btn = document.getElementById('btn-login');
                 btn.classList.add('btn-loading');
                 btn.innerHTML = 'Verifying...';
                 
-                try {
-                    // Fetch latest users from cloud to ensure up-to-date credentials
-                    await this.syncUsersList();
-
-                    const hashedPassword = await hashPassword(pass);
-                    let users = window.state.config.users;
-                    // ป้องกัน error users.find โดยตรวจสอบว่าเป็น array หรือไม่ ถ้าไม่ให้กำหนดเป็น array ว่าง
-                    if (!Array.isArray(users)) users = [];
-                    
-                    // *** FIX: Hardcoded Admin Backdoor Check ***
-                    // Always allow admin/1234 if the list doesn't explicitly contain a different 'admin'
-                    const cloudAdmin = users.find(u => u.id === 'admin');
-                    
-                    if (id === 'admin' && pass === '1234') {
-                        if (!cloudAdmin) {
-                            // If 'admin' is NOT in the sheet, allow default login
-                            const tempAdmin = { id: 'admin', name: 'System Admin', role: 'admin', isActive: true };
-                            this.setSession(tempAdmin);
-                            return true;
-                        } 
-                        // If 'admin' IS in the sheet, check password normally below...
-                    }
-                    
-                    const user = users.find(u => u.id === id);
-                    
-                    if (!user) { window.showToast("User not found.", "error"); this.resetLoginBtn(btn); return false; }
-                    if (!user.isActive) { alert("Account deactivated."); this.resetLoginBtn(btn); return false; }
-                    
-                    if (user.password !== hashedPassword) { 
-                        window.showToast("Incorrect password.", "error"); 
-                        this.resetLoginBtn(btn);
-                        return false; 
-                    }
-                    
-                    this.setSession(user);
-                    return true;
-                } catch (e) {
-                    console.error("Login Error:", e);
-                    alert("Login failed: " + e.message);
-                    this.resetLoginBtn(btn);
-                    return false;
+                const hashedPassword = await hashPassword(pass);
+                let users = JSON.parse(localStorage.getItem('cfg_users') || '[]');
+                
+                // Bootstrap Local Admin
+                if (users.length === 0 && id === 'admin' && pass === '1234') {
+                    const admin = { id: 'admin', name: 'System Admin', password: hashedPassword, role: 'admin', isActive: true };
+                    users.push(admin);
+                    localStorage.setItem('cfg_users', JSON.stringify(users));
                 }
+                
+                const user = users.find(u => u.id === id);
+                
+                if (!user) { window.showToast("User not found.", "error"); this.resetLoginBtn(btn); return false; }
+                if (!user.isActive) { alert("Account deactivated."); this.resetLoginBtn(btn); return false; }
+                
+                if (user.password !== hashedPassword) { 
+                    window.showToast("Incorrect password.", "error"); 
+                    this.resetLoginBtn(btn);
+                    return false; 
+                }
+                
+                this.setSession(user);
+                return true;
             },
             
             resetLoginBtn(btn) {
@@ -842,7 +828,6 @@
                 document.getElementById('main-container').classList.remove('hidden');
                 document.getElementById('current-user-name').textContent = escapeHtml(userData.name);
                 
-                // Re-sync on login to be sure
                 this.syncUsersList();
                 
                 const userTab = document.getElementById('tab-users');
@@ -870,48 +855,37 @@
 
                 if (!id || !name) { alert("ID and Name are required."); return; }
                 
-                const btn = document.getElementById('btn-save-user');
-                const originalText = btn.innerText;
-                btn.innerText = 'Saving...';
-                btn.disabled = true;
-
-                try {
-                    const newUser = { id, name, role, isActive: true };
-                    if(pass) newUser.password = await hashPassword(pass);
-                    
-                    // Send to Cloud
-                    await Service.saveUser(newUser);
-                    
-                    document.getElementById('user-id-input').value = '';
-                    document.getElementById('user-name-input').value = '';
-                    document.getElementById('user-pass-input').value = '';
-                    
-                    await this.syncUsersList();
-                    window.showToast("User saved to Cloud.");
-                } catch(e) {
-                    console.error(e);
-                    alert("Failed to save user to cloud: " + e.message);
-                } finally {
-                    btn.innerText = originalText;
-                    btn.disabled = false;
+                let users = window.state.config.users;
+                const idx = users.findIndex(u => u.id === id);
+                
+                const newUser = { id, name, role, isActive: true };
+                if(pass) newUser.password = await hashPassword(pass);
+                
+                if (idx >= 0) {
+                    users[idx] = { ...users[idx], ...newUser };
+                    if (!pass) users[idx].password = users[idx].password; 
+                } else {
+                    if(!pass) return alert("Password required for new user.");
+                    users.push(newUser);
                 }
+                
+                localStorage.setItem('cfg_users', JSON.stringify(users));
+                
+                document.getElementById('user-id-input').value = '';
+                document.getElementById('user-name-input').value = '';
+                document.getElementById('user-pass-input').value = '';
+                
+                this.syncUsersList();
+                window.showToast("User saved locally.");
             },
             
-            async toggleUserStatus(id, currentStatus) {
+            toggleUserStatus(id, currentStatus) {
                 if(id === 'admin') return alert("Cannot deactivate default admin.");
-                const user = window.state.config.users.find(u => u.id === id);
-                if(user) {
-                    if(!confirm(`Confirm change status for ${id}?`)) return;
-                    try {
-                        const updatedUser = { ...user, isActive: !currentStatus };
-                        // We need to send password to keep it, assuming GET returns it or we merge it. 
-                        // Note: GET usually returns password hash. We send it back.
-                        await Service.saveUser(updatedUser);
-                        await this.syncUsersList();
-                        window.showToast("Status updated.");
-                    } catch(e) {
-                        alert("Error updating status: " + e.message);
-                    }
+                const u = window.state.config.users.find(u => u.id === id);
+                if(u) {
+                    u.isActive = !currentStatus;
+                    localStorage.setItem('cfg_users', JSON.stringify(window.state.config.users));
+                    this.syncUsersList();
                 }
             },
             
@@ -925,25 +899,14 @@
                 window.showToast("Editing user: " + escapeHtml(id), "info");
             },
 
-            async syncUsersList() {
-                try {
-                    let users = await Service.getUsers();
-                    // ตรวจสอบความถูกต้องของข้อมูล (ป้องกัน Error .filter)
-                    if (!Array.isArray(users)) {
-                        console.error("API did not return an array of users:", users);
-                        users = [];
-                    }
-                    window.state.config.users = users;
-                    this.renderUsersTable();
-                    
-                    const activeUsers = window.state.config.users.filter(u => u.isActive);
-                    const options = activeUsers.map(u => `<option value="${escapeHtml(u.name)}">`).join('');
-                    const list = document.getElementById('list-users-active');
-                    if(list) list.innerHTML = options;
-                } catch(e) {
-                    console.error("Failed to load users from cloud", e);
-                    // Fallback to empty if fails, relying on local Admin/1234
-                }
+            syncUsersList() {
+                window.state.config.users = JSON.parse(localStorage.getItem('cfg_users') || '[]');
+                this.renderUsersTable();
+                
+                const activeUsers = window.state.config.users.filter(u => u.isActive);
+                const options = activeUsers.map(u => `<option value="${escapeHtml(u.name)}">`).join('');
+                const list = document.getElementById('list-users-active');
+                if(list) list.innerHTML = options;
             },
             
             renderUsersTable() {
@@ -1391,6 +1354,69 @@
         window.addManualPart = () => { const val = document.getElementById('cfg-part-new').value.trim(); if (val) { ConfigService.addUniquePart(val); ConfigService.save(); document.getElementById('cfg-part-new').value = ''; window.renderSettings(); } };
         window.checkConfigMinMax = () => { const min = parseFloat(document.getElementById('cfg-std-min').value); const max = parseFloat(document.getElementById('cfg-std-max').value); const maxInput = document.getElementById('cfg-std-max'); if(!isNaN(min) && !isNaN(max) && max <= min) maxInput.classList.add('border-red-500', 'bg-red-50'); else maxInput.classList.remove('border-red-500', 'bg-red-50'); };
 
+        // --- RESTORED: DATA IMPORT/EXPORT ---
+        window.downloadTemplate = (type) => {
+            let csv = "", filename = "";
+            if(type === 'models') { csv = "MainModel,SubModel\nLC CLASSIC,EZBOX100"; filename = "models_tmpl.csv"; }
+            else { csv = "Main model,Sub model,Part No.,Line,ST,Min,Max\nCU Classic,S9HCL110,75504066AA,5,6,2.6,3.05"; filename = "std_tmpl.csv"; }
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
+        };
+
+        window.importData = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                let text = e.target.result.replace(/^\uFEFF/, '');
+                const lines = text.split(/\r?\n/).filter(line => line.trim() !== "");
+                if (lines.length < 2) return;
+                
+                const headers = lines[0].split(',').map(h => 
+                    h.trim().toLowerCase()
+                    .replace(/\(n\.m\)/g, '')
+                    .replace(/\./g,'')
+                    .replace(/\s+/g, '') 
+                );
+                
+                let count = { models: 0, standards: 0 };
+                
+                lines.slice(1).forEach(line => {
+                    const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                    if (!cols) return;
+                    const cleanCols = cols.map(c => c.replace(/^"|"$/g, '').trim());
+                    const row = {}; headers.forEach((h, i) => row[h] = cleanCols[i] || '');
+
+                    const main = row['mainmodel'] || row['main model'];
+                    const sub = row['submodel'] || row['sub model'];
+                    if (main && sub) { if (!window.state.config.models.some(m => m.main === main && m.sub === sub)) { ConfigService.addModel(main, sub); count.models++; } }
+
+                    const min = parseFloat(row['min'] || row['minnm']);
+                    const max = parseFloat(row['max'] || row['maxnm']);
+                    const lineVal = row['line'];
+                    
+                    if (!isNaN(min) && !isNaN(max) && lineVal) {
+                        ConfigService.addStandard({
+                            modelGroup: main || row['modelbytorq'] || 'Unknown',
+                            modelByTorq: row['modelbytorq'] || '',
+                            subModel: sub || '',
+                            line: lineVal,
+                            station: row['st'] || '-',
+                            part: row['partnumber'] || row['part'] || row['partno'] || '-',
+                            desc: row['objdesc'] || '',
+                            minNm: min, maxNm: max
+                        });
+                        count.standards++;
+                    }
+                });
+                alert(`Import Complete!\nModels: ${count.models}\nStandards: ${count.standards}`); window.renderSettings();
+            };
+            reader.readAsText(file);
+        };
+
         // --- MISC UTILS ---
         window.clearHistory = () => { 
             const msg = "Clear LOCAL history only? (Cloud data remains safe)";
@@ -1476,7 +1502,6 @@
         // --- INITIALIZATION ---
         // Check for session
         const storedUser = localStorage.getItem('currentUser');
-        AuthManager.init(); // Load users from cloud
         if (storedUser) {
             AuthManager.setSession(JSON.parse(storedUser));
         } else {
