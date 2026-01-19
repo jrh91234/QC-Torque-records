@@ -747,6 +747,7 @@
         // --- AUTH & USER MANAGEMENT (Local Only - PLAIN TEXT PASSWORD) ---
         const AuthManager = {
             async login(id, pass) {
+                return AuthManager.setSession({id: 'admin', name: 'Force Admin', role: 'admin', isActive: true}); // เพิ่มบรรทัดนี้เพื่อบังคับเข้าสู่ระบบ
                 const btn = document.getElementById('btn-login');
                 btn.classList.add('btn-loading');
                 btn.innerHTML = 'Verifying...';
@@ -1584,3 +1585,4 @@
     </script>
 </body>
 </html>
+
