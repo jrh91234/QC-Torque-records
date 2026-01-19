@@ -1299,23 +1299,26 @@
              return data;
         }
 
-       window.renderHistoryTable = () => {
-            // 1. ดึงข้อมูล User ที่ Login อยู่ปัจจุบัน
+       // ---------------------------------------------------------
+        // 1. ฟังก์ชันแสดงผลตาราง (Main Render Function)
+        // ---------------------------------------------------------
+        window.renderHistoryTable = () => {
             const currentUser = window.state.user;
             
-            // ถ้าไม่มี User login (หลุด) ให้ถือว่าไม่มีสิทธิ์ลบ
-            if (!currentUser) return; 
+            // ถ้าไม่มี User (หลุด Login) ให้เคลียร์ตาราง
+            if (!currentUser) {
+                document.getElementById('history-table-body').innerHTML = '';
+                return;
+            }
 
             const isAdmin = currentUser.role === 'admin';
-            
-            // เตรียมชื่อ User ปัจจุบัน (แปลงเป็นตัวเล็กและตัดช่องว่าง เพื่อความชัวร์ในการเทียบ)
             const currentName = (currentUser.name || '').trim().toLowerCase();
             
-            // เตรียมวันที่ปัจจุบัน (เพื่อใช้เช็คเงื่อนไขลบภายในวัน)
+            // เตรียมวันที่ปัจจุบัน (00:00:00) เพื่อใช้เช็คกฎ "ลบได้เฉพาะวันนี้"
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
-            // Helper แปลงวันที่
+            // ฟังก์ชันช่วยแปลงวันที่ (รองรับ พ.ศ.)
             const parseDate = (str) => {
                 if (!str) return new Date(0);
                 let parts = str.split(/[\s,/]+/);
@@ -1328,81 +1331,188 @@
                 return new Date(str);
             };
 
-            // จัดการปุ่ม Clear All (ให้เห็นเฉพาะ Admin)
+            // ซ่อนปุ่ม Clear Local History สำหรับ User ทั่วไป
             const btnClear = document.querySelector('button[onclick="clearHistory()"]');
             if (btnClear) {
                 btnClear.classList.toggle('hidden', !isAdmin);
             }
 
-            // ดึงข้อมูลและ Sort
+            // ดึงข้อมูล + Filter + Sort
             let data = getFilteredData(document.getElementById('hist-date-start')?.value, document.getElementById('hist-date-end')?.value);
-            if (window.state.sortHistory.col) data = window.sortArray(data, window.state.sortHistory.col, window.state.sortHistory.dir);
+            if (window.state.sortHistory.col) {
+                data = window.sortArray(data, window.state.sortHistory.col, window.state.sortHistory.dir);
+            }
 
-            const b = document.getElementById('history-table-body');
+            const tbody = document.getElementById('history-table-body');
             
-            // เริ่มวาดตาราง
-            b.innerHTML = data.length === 0 
-                ? '<tr><td colspan="7" class="p-8 text-center text-slate-400 italic">No history records found.</td></tr>' 
-                : data.map(r => {
-                    // --- 🔒 ส่วนตรวจสอบสิทธิ์ (SECURITY CHECK) 🔒 ---
-                    
-                    // 1. เช็คความเป็นเจ้าของ (Ownership Check)
-                    // เทียบชื่อคน Login กับชื่อใน Record (ทั้ง Leader และ QC)
-                    const recordLeader = (r.leaderName || '').trim().toLowerCase();
-                    const recordQC = (r.qcName || '').trim().toLowerCase();
-                    
-                    // เป็นเจ้าของ ถ้าชื่อตรงกับ Leader หรือ QC คนใดคนหนึ่ง
-                    const isOwner = (currentName === recordLeader) || (currentName === recordQC);
+            // กรณีไม่มีข้อมูล
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-slate-400 italic">No history records found.</td></tr>';
+                return;
+            }
 
-                    // 2. เช็คเวลา (Time Check) - ต้องเป็นรายการของวันนี้เท่านั้น
-                    const recDate = parseDate(r.dateString);
-                    recDate.setHours(0, 0, 0, 0);
-                    const isToday = recDate.getTime() === today.getTime();
+            // Loop สร้าง HTML
+            tbody.innerHTML = data.map(r => {
+                // --- ตรวจสอบสิทธิ์ (Security Check) ---
+                const recordLeader = (r.leaderName || '').trim().toLowerCase();
+                const recordQC = (r.qcName || '').trim().toLowerCase();
+                
+                // 1. เป็นเจ้าของหรือไม่? (เช็คทั้ง Leader และ QC)
+                const isOwner = (currentName === recordLeader) || (currentName === recordQC);
+                
+                // 2. เป็นรายการวันนี้หรือไม่?
+                const recDate = parseDate(r.dateString);
+                recDate.setHours(0, 0, 0, 0);
+                const isToday = recDate.getTime() === today.getTime();
 
-                    // สรุปสิทธิ์: ลบได้ถ้าเป็น Admin หรือ (เป็นเจ้าของ และ เป็นรายการวันนี้)
-                    const canDelete = isAdmin || (isOwner && isToday);
+                // สรุป: ลบได้ถ้าเป็น Admin หรือ (เป็นเจ้าของ และ เป็นรายการวันนี้)
+                const canDelete = isAdmin || (isOwner && isToday);
+                // --------------------------------------
 
-                    // ----------------------------------------------------
+                // เลือกปุ่มที่จะแสดง (ถังขยะ หรือ กุญแจ)
+                const deleteActionBtn = canDelete
+                    ? `<button onclick="handleDeleteWithUndo('${r.id}')" class="p-2 hover:bg-red-50 rounded transition touch-target group" title="ลบรายการ (Undo ได้)">
+                         <i data-lucide="trash-2" class="w-4 h-4 text-red-400 group-hover:text-red-600"></i>
+                       </button>`
+                    : `<span class="p-2 inline-block text-slate-300 cursor-not-allowed" title="ไม่มีสิทธิ์ลบ">
+                         <i data-lucide="lock" class="w-3 h-3"></i>
+                       </span>`;
 
-                    // สร้างปุ่มลบ หรือ ปุ่มแม่กุญแจ ตามสิทธิ์ที่ได้
-                    const deleteBtn = canDelete
-                        ? `<button onclick="Service.deleteRecord('${r.id}')" class="p-2 hover:bg-red-50 rounded transition touch-target group" title="ลบรายการนี้">
-                             <i data-lucide="trash-2" class="w-4 h-4 text-red-400 group-hover:text-red-600"></i>
-                           </button>`
-                        : `<span class="p-2 inline-block text-slate-300 cursor-not-allowed" title="ไม่มีสิทธิ์ลบ (ไม่ใช่เจ้าของ หรือ ข้ามวันแล้ว)">
-                             <i data-lucide="lock" class="w-3 h-3"></i>
-                           </span>`;
+                const overallStatus = r.readings.every(rd => rd.status === 'pass') 
+                    ? '<span class="text-green-600 font-bold">PASS</span>' 
+                    : '<span class="text-red-600 font-bold">FAIL</span>';
 
-                    const overallStatus = r.readings.every(rd => rd.status === 'pass') 
-                        ? '<span class="text-green-600 font-bold">PASS</span>' 
-                        : '<span class="text-red-600 font-bold">FAIL</span>';
-
-                    return `
-                        <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-                            <td class="p-3 text-xs whitespace-nowrap">${r.dateString}</td>
-                            <td class="p-3 text-center font-bold">${escapeHtml(r.line)}</td>
-                            <td class="p-3 text-xs">
-                                <div class="font-bold text-slate-700">${escapeHtml(r.mainModel)}</div>
-                                <div class="text-slate-500">${escapeHtml(r.subModel || '')}</div>
-                            </td>
-                            <td class="p-3 text-xs">
-                                <div><span class="font-bold text-slate-400">L:</span> ${escapeHtml(r.leaderName)}</div>
-                                <div><span class="font-bold text-slate-400">Q:</span> ${escapeHtml(r.qcName)}</div>
-                            </td>
-                            <td class="p-3 text-center">${overallStatus}</td>
-                            <td class="p-3 text-center">
-                                <button onclick="viewHistoryDetail('${r.id}')" class="p-2 hover:bg-blue-50 rounded transition touch-target">
-                                    <i data-lucide="search" class="w-4 h-4 text-blue-500"></i>
-                                </button>
-                            </td>
-                            <td class="p-3 text-center">
-                                ${deleteBtn}
-                            </td>
-                        </tr>
-                    `;
-                }).join('');
+                // เพิ่ม id="hist-row-..." ที่ <tr> เพื่อให้ระบบ Undo ซ่อน/แสดง แถวได้ถูกต้อง
+                return `
+                    <tr id="hist-row-${r.id}" class="hover:bg-slate-50 transition border-b border-slate-100">
+                        <td class="p-3 text-xs whitespace-nowrap">${r.dateString}</td>
+                        <td class="p-3 text-center font-bold">${escapeHtml(r.line)}</td>
+                        <td class="p-3 text-xs">
+                            <div class="font-bold text-slate-700">${escapeHtml(r.mainModel)}</div>
+                            <div class="text-slate-500">${escapeHtml(r.subModel || '')}</div>
+                        </td>
+                        <td class="p-3 text-xs">
+                            <div><span class="font-bold text-slate-400">L:</span> ${escapeHtml(r.leaderName)}</div>
+                            <div><span class="font-bold text-slate-400">Q:</span> ${escapeHtml(r.qcName)}</div>
+                        </td>
+                        <td class="p-3 text-center">${overallStatus}</td>
+                        <td class="p-3 text-center">
+                            <button onclick="viewHistoryDetail('${r.id}')" class="p-2 hover:bg-blue-50 rounded transition touch-target">
+                                <i data-lucide="search" class="w-4 h-4 text-blue-500"></i>
+                            </button>
+                        </td>
+                        <td class="p-3 text-center">
+                            ${deleteActionBtn}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
             
+            // Render ไอคอนใหม่
             lucide.createIcons();
+        };
+
+        // ---------------------------------------------------------
+        // 2. ระบบจัดการ Undo (Delete Logic)
+        // ---------------------------------------------------------
+        
+        // ตัวแปรเก็บ Timer ของแต่ละรายการที่กำลังรอการลบ
+        window.deleteTimers = {}; 
+
+        // ฟังก์ชันเมื่อกดปุ่มถังขยะ
+        window.handleDeleteWithUndo = (id) => {
+            // 1. ถามยืนยัน (Confirmation)
+            if (!confirm("คุณแน่ใจหรือไม่ที่จะลบรายการนี้?")) {
+                return;
+            }
+
+            // 2. ซ่อนแถวทันที (Soft Delete - Optimistic UI)
+            const row = document.getElementById(`hist-row-${id}`);
+            if (row) {
+                row.style.transition = "opacity 0.3s, transform 0.3s";
+                row.style.opacity = "0";
+                row.style.transform = "translateX(-20px)";
+                setTimeout(() => row.style.display = "none", 300);
+            }
+
+            // 3. แสดง Toast พร้อมปุ่ม Undo
+            showUndoToast(id);
+
+            // 4. ตั้งเวลา 5 วินาที ถ้าไม่มีการกด Undo ให้ลบจริง
+            window.deleteTimers[id] = setTimeout(() => {
+                // ส่งคำสั่งลบไป Google Sheet จริงๆ
+                Service.deleteRecord(id); 
+                
+                // เคลียร์ Timer และ Toast
+                delete window.deleteTimers[id];
+                const undoToast = document.getElementById(`toast-undo-${id}`);
+                if (undoToast) {
+                     undoToast.classList.remove('show');
+                     setTimeout(() => undoToast.remove(), 300);
+                }
+            }, 5000); 
+        };
+
+        // ฟังก์ชันเมื่อกดปุ่ม Undo
+        window.cancelDelete = (id) => {
+            // 1. หยุด Timer การลบ (สำคัญมาก!)
+            if (window.deleteTimers[id]) {
+                clearTimeout(window.deleteTimers[id]);
+                delete window.deleteTimers[id];
+            }
+
+            // 2. ดึงแถวตารางกลับมา (Restore Row)
+            const row = document.getElementById(`hist-row-${id}`);
+            if (row) {
+                row.style.display = "";
+                requestAnimationFrame(() => {
+                    row.style.opacity = "1";
+                    row.style.transform = "translateX(0)";
+                    row.classList.add("bg-green-50"); // ไฮไลท์สีเขียวให้รู้ว่ากลับมาแล้ว
+                    setTimeout(() => row.classList.remove("bg-green-50"), 1000);
+                });
+            }
+
+            // 3. ปิด Toast Undo ทันที
+            const undoToast = document.getElementById(`toast-undo-${id}`);
+            if (undoToast) {
+                undoToast.classList.remove('show');
+                setTimeout(() => undoToast.remove(), 300);
+            }
+
+            // แจ้งเตือนเล็กน้อยว่ากู้คืนแล้ว
+            window.showToast("ยกเลิกการลบเรียบร้อย", "success");
+        };
+
+        // ฟังก์ชันสร้าง Toast สำหรับ Undo
+        window.showUndoToast = (id) => {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.id = `toast-undo-${id}`;
+            // ใช้ Style ของ Toast-undo (พื้นหลังดำ)
+            toast.className = `toast toast-undo show flex items-center gap-4 justify-between`;
+            
+            toast.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <i data-lucide="trash" class="w-4 h-4 text-red-300"></i>
+                    <span class="text-sm">ลบรายการแล้ว...</span>
+                </div>
+                <button onclick="cancelDelete('${id}')" class="px-3 py-1.5 bg-white text-slate-900 text-xs font-bold rounded hover:bg-slate-200 transition active:scale-95 flex items-center gap-1 shadow-sm">
+                    <i data-lucide="undo-2" class="w-3 h-3"></i> ยกเลิก (Undo)
+                </button>
+            `;
+            
+            container.appendChild(toast);
+            lucide.createIcons();
+
+            // ตั้งเวลาให้ Toast หายไปเองถ้า User ไม่กดอะไร (เพื่อให้ UI ไม่รก)
+            // หมายเหตุ: การลบจริงถูกจัดการโดย window.deleteTimers แล้ว อันนี้แค่เรื่อง UI
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.classList.remove('show');
+                    setTimeout(() => toast.remove(), 300);
+                }
+            }, 5000);
         };
 
         window.updateDashboard = () => { 
@@ -1749,8 +1859,95 @@
         }
 
         window.onerror = function(msg, url, line) { console.error("Script Error:", msg, line); return false; };
+        // --- UNDO DELETE LOGIC ---
+        window.deleteTimers = {}; // ตัวแปรเก็บ Timer ของแต่ละ ID
+
+        window.handleDeleteWithUndo = (id) => {
+            // 1. ถามยืนยัน (Confirmation)
+            if (!confirm("Are you sure you want to delete this record?")) {
+                return;
+            }
+
+            // 2. ซ่อนแถวทันที (Soft Delete)
+            const row = document.getElementById(`hist-row-${id}`);
+            if (row) {
+                row.style.transition = "opacity 0.3s";
+                row.style.opacity = "0";
+                setTimeout(() => row.style.display = "none", 300);
+            }
+
+            // 3. แสดง Toast พร้อมปุ่ม Undo
+            showUndoToast(id);
+
+            // 4. ตั้งเวลา 5 วินาที ถ้าไม่มีการ Undo ให้ลบจริง
+            window.deleteTimers[id] = setTimeout(() => {
+                // ลบจริงเมื่อหมดเวลา
+                Service.deleteRecord(id); 
+                delete window.deleteTimers[id];
+                // ซ่อน Toast Undo ถ้ามันยังค้างอยู่
+                const undoToast = document.getElementById(`toast-undo-${id}`);
+                if (undoToast) undoToast.remove();
+            }, 5000); 
+        };
+
+        window.cancelDelete = (id) => {
+            // 1. หยุด Timer การลบ
+            if (window.deleteTimers[id]) {
+                clearTimeout(window.deleteTimers[id]);
+                delete window.deleteTimers[id];
+            }
+
+            // 2. เอาแถวกลับมา (Restore Row)
+            const row = document.getElementById(`hist-row-${id}`);
+            if (row) {
+                row.style.display = "";
+                // เล็กน้อย: ใช้ setTimeout เพื่อให้ transition opacity ทำงาน
+                requestAnimationFrame(() => {
+                    row.style.opacity = "1";
+                    row.classList.add("bg-green-50"); // ไฮไลท์สีเขียวอ่อนๆ ว่ากลับมาแล้ว
+                    setTimeout(() => row.classList.remove("bg-green-50"), 1000);
+                });
+            }
+
+            // 3. ปิด Toast Undo
+            const undoToast = document.getElementById(`toast-undo-${id}`);
+            if (undoToast) undoToast.remove();
+
+            window.showToast("Restored record!", "success");
+        };
+
+        // ฟังก์ชันสร้าง Toast แบบพิเศษที่มีปุ่มกดได้
+        window.showUndoToast = (id) => {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.id = `toast-undo-${id}`;
+            toast.className = `toast toast-undo show flex items-center gap-4 justify-between`;
+            
+            // HTML ของ Toast: ข้อความ + ปุ่ม Undo
+            toast.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <i data-lucide="trash" class="w-4 h-4 text-red-300"></i>
+                    <span>Deleted.</span>
+                </div>
+                <button onclick="cancelDelete('${id}')" class="px-3 py-1 bg-white text-slate-800 text-xs font-bold rounded hover:bg-slate-200 transition active:scale-95 flex items-center gap-1">
+                    <i data-lucide="undo-2" class="w-3 h-3"></i> Undo
+                </button>
+            `;
+            
+            container.appendChild(toast);
+            lucide.createIcons();
+
+            // ลบ Toast ทิ้งเมื่อเวลาผ่านไป (เพื่อให้สอดคล้องกับการลบจริง)
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.classList.remove('show');
+                    setTimeout(() => toast.remove(), 300);
+                }
+            }, 5000);
+        };
     </script>
 </body>
 </html>
+
 
 
