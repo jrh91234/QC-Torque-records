@@ -622,7 +622,36 @@
             </div>
         </div>
     </div>
+<div id="quick-add-modal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[10000] p-4 backdrop-blur-sm transition-opacity opacity-0">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm transform scale-95 transition-all duration-300 p-6">
+            <div class="text-center mb-6">
+                <div class="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i data-lucide="user-plus" class="w-6 h-6 text-blue-600"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-800">Add New Person</h3>
+                <p class="text-xs text-slate-500">For <span id="quick-add-role-label">User</span></p>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">EMPLOYEE ID (รหัสพนักงาน)</label>
+                    <input type="text" id="quick-id" class="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" placeholder="e.g. EMP001">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">FULL NAME (ชื่อ-สกุล)</label>
+                    <input type="text" id="quick-name" class="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" placeholder="e.g. Somchai Jai-dee">
+                </div>
+                <div class="text-xs text-slate-400 bg-slate-50 p-2 rounded">
+                    * Default Password: <b>1234</b> (Change in Settings)
+                </div>
+            </div>
 
+            <div class="flex gap-3 mt-6">
+                <button onclick="closeQuickAddModal()" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold text-sm transition">Cancel</button>
+                <button onclick="saveQuickUser()" class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-sm shadow-lg shadow-blue-600/30 transition">Save</button>
+            </div>
+        </div>
+    </div>
     <script>
         // --- GOOGLE APPS SCRIPT URL ---
         const GAS_API_URL = "https://script.google.com/macros/s/AKfycbw005nlitvAWq-kA-rWoGX0B-ovzq9kbT7mroOdLSHERaF12-LjfwDuQM3j0jZBaMTVYg/exec";
@@ -2062,6 +2091,7 @@
     </script>
 </body>
 </html>
+
 
 
 
