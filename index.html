@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>QC Torque Analytics & Recorder (Google Sheets)</title>
+    <title>QC Torque Analytics & Recorder (Cloud Config)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -69,7 +69,7 @@
                     <i data-lucide="sheet" class="w-8 h-8 text-white"></i>
                 </div>
                 <h1 class="text-2xl font-bold text-slate-800">System Login</h1>
-                <p class="text-slate-500 text-sm mt-1">QC Torque (Google Sheets)</p>
+                <p class="text-slate-500 text-sm mt-1">QC Torque (Cloud Config)</p>
             </div>
             
             <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
@@ -118,7 +118,7 @@
                 </div>
 
                 <div class="hidden md:flex items-center gap-3">
-                    <button onclick=".logout()" class="flex items-center gap-1 bg-red-600/80 hover:bg-red-600 px-3 py-1.5 rounded text-xs font-bold transition shadow-sm">
+                    <button onclick="AuthManager.logout()" class="flex items-center gap-1 bg-red-600/80 hover:bg-red-600 px-3 py-1.5 rounded text-xs font-bold transition shadow-sm">
                         <i data-lucide="log-out" class="w-3 h-3"></i> Logout
                     </button>
 
@@ -157,7 +157,7 @@
                     <i data-lucide="settings" class="w-5 h-5"></i> Settings
                 </button>
                 <div class="border-t border-blue-700 pt-2 mt-2">
-                     <button onclick=".logout()" class="w-full px-4 py-3 rounded-lg text-sm font-medium transition flex items-center gap-3 text-red-200 hover:bg-red-700 hover:text-white active:scale-95">
+                     <button onclick="AuthManager.logout()" class="w-full px-4 py-3 rounded-lg text-sm font-medium transition flex items-center gap-3 text-red-200 hover:bg-red-700 hover:text-white active:scale-95">
                         <i data-lucide="log-out" class="w-5 h-5"></i> Logout
                     </button>
                 </div>
@@ -352,7 +352,7 @@
                             </select>
                         </div>
                     </div>
-                    <button onclick=".saveUser()" id="btn-save-user" class="mt-4 w-full md:w-auto px-6 py-2.5 bg-blue-600 text-white rounded-md text-sm font-bold hover:bg-blue-700 shadow-sm transition flex items-center justify-center gap-2">
+                    <button onclick="AuthManager.saveUser()" id="btn-save-user" class="mt-4 w-full md:w-auto px-6 py-2.5 bg-blue-600 text-white rounded-md text-sm font-bold hover:bg-blue-700 shadow-sm transition flex items-center justify-center gap-2">
                         Save User
                     </button>
                 </div>
@@ -609,7 +609,6 @@
         // --- GOOGLE APPS SCRIPT URL ---
         const GAS_API_URL = "https://script.google.com/macros/s/AKfycbw005nlitvAWq-kA-rWoGX0B-ovzq9kbT7mroOdLSHERaF12-LjfwDuQM3j0jZBaMTVYg/exec";
 
-        // --- SECURITY & UTILS HELPER (REMOVED HASHING) ---
         function escapeHtml(text) {
             if (text == null) return ''; 
             const str = String(text);
@@ -640,12 +639,46 @@
         const Service = {
             async init() {
                 window.state.isOffline = false;
-                this.subscribeHistory();
+                await this.loadConfig(); // Load Config First
+                this.subscribeHistory(); // Then History
                 window.updateStatusUI(true);
             },
 
+            async loadConfig() {
+                try {
+                    const response = await fetch(`${GAS_API_URL}?action=read_config`);
+                    const data = await response.json();
+                    
+                    if (data.models && data.standards) {
+                        window.state.config.models = data.models;
+                        window.state.config.standards = data.standards;
+                        
+                        const allParts = data.standards.map(s => s.part);
+                        window.state.config.parts = [...new Set(allParts)].sort();
+                        
+                        window.populateDropdowns();
+                        window.showToast("Configuration Synced!", "success");
+                    }
+                } catch (e) {
+                    console.error("Config Load Error:", e);
+                    window.showToast("Failed to load cloud config. Using local.", "error");
+                    ConfigService.loadLocal();
+                }
+            },
+
+            async saveConfig(newConfigData) {
+                try {
+                    window.showToast("Syncing Config to Cloud...", "info");
+                    const payload = { action: 'save_config', payload: newConfigData };
+                    await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify(payload) });
+                    window.showToast("Configuration Saved to Cloud!", "success");
+                } catch (e) {
+                    console.error("Config Save Error:", e);
+                    window.showToast("Save Config Failed (Offline)", "error");
+                }
+            },
+
             async saveRecord(record) {
-                // Try sending to Google Sheets
                 try {
                     const payload = { action: 'save_record', payload: record };
                     const response = await fetch(GAS_API_URL, {
@@ -656,13 +689,12 @@
                     const result = await response.json();
                     if(result.status === 'success') {
                         window.showToast("Saved to Google Sheets!", "success");
-                        this.subscribeHistory(); // Reload
+                        this.subscribeHistory();
                     } else {
                         throw new Error(result.message || "Unknown Error");
                     }
                 } catch (e) {
                     console.error("Save Error (Cloud):", e);
-                    // Fallback to local
                     this.saveLocal(record);
                 }
             },
@@ -719,16 +751,10 @@
 
             async subscribeHistory() {
                 try {
-                    // Fetch from GAS (GET request)
                     const response = await fetch(`${GAS_API_URL}?action=read_history`);
                     const cloudData = await response.json();
-                    
-                    // Get Local Data
                     const localData = JSON.parse(localStorage.getItem('torque_records') || '[]');
-                    
-                    // Merge: Local first, then Cloud
                     window.state.historyData = [...localData, ...cloudData];
-                    
                     window.updateDashboard();
                     window.renderHistoryTable();
                     window.state.isOffline = false;
@@ -737,7 +763,6 @@
                     console.error("Fetch Error:", e);
                     window.state.isOffline = true;
                     window.updateStatusUI(false);
-                    // Show local only
                     window.state.historyData = JSON.parse(localStorage.getItem('torque_records') || '[]');
                     window.renderHistoryTable();
                 }
@@ -752,8 +777,6 @@
                 btn.innerHTML = 'Verifying...';
                 
                 let users = JSON.parse(localStorage.getItem('cfg_users') || '[]');
-                
-                // Bootstrap Local Admin (Plain Text)
                 if (users.length === 0 && id === 'admin' && pass === '1234') {
                     const admin = { id: 'admin', name: 'System Admin', password: '1234', role: 'admin', isActive: true };
                     users.push(admin);
@@ -761,11 +784,9 @@
                 }
                 
                 const user = users.find(u => u.id === id);
-                
                 if (!user) { window.showToast("User not found.", "error"); this.resetLoginBtn(btn); return false; }
                 if (!user.isActive) { alert("Account deactivated."); this.resetLoginBtn(btn); return false; }
                 
-                // Compare Plain Text Password
                 if (user.password !== pass) { 
                     window.showToast("Incorrect password.", "error"); 
                     this.resetLoginBtn(btn);
@@ -801,7 +822,7 @@
                 }
                 
                 window.showToast(`Welcome, ${escapeHtml(userData.name)}!`, 'success');
-                Service.init(); // Start Service after login
+                Service.init(); 
             },
 
             logout() {
@@ -822,7 +843,6 @@
                 const idx = users.findIndex(u => u.id === id);
                 
                 const newUser = { id, name, role, isActive: true };
-                // SAVE AS PLAIN TEXT
                 if(pass) newUser.password = pass; 
                 
                 if (idx >= 0) {
@@ -866,7 +886,6 @@
             syncUsersList() {
                 window.state.config.users = JSON.parse(localStorage.getItem('cfg_users') || '[]');
                 this.renderUsersTable();
-                
                 const activeUsers = window.state.config.users.filter(u => u.isActive);
                 const options = activeUsers.map(u => `<option value="${escapeHtml(u.name)}">`).join('');
                 const list = document.getElementById('list-users-active');
@@ -896,9 +915,7 @@
                             <td class="p-3 font-mono font-bold text-slate-700">${escapeHtml(u.id)}</td>
                             <td class="p-3">${escapeHtml(u.name)}</td>
                             <td class="p-3 capitalize">${escapeHtml(u.role)}</td>
-                            <td class="p-3 font-mono text-sm text-slate-500">
-                                ${escapeHtml(u.password)}
-                            </td>
+                            <td class="p-3 font-mono text-sm text-slate-500">${escapeHtml(u.password)}</td>
                             <td class="p-3 text-center">${statusBadge}</td>
                             <td class="p-3 text-center whitespace-nowrap">${btnEdit} ${btnAction}</td>
                         </tr>
@@ -925,26 +942,20 @@
                 for (const rec of offlineRecs) {
                     try {
                         const payload = { ...rec };
-                        delete payload.id; // Let GAS assign new ID
-                        
+                        delete payload.id; 
                         await fetch(GAS_API_URL, {
                             method: 'POST',
                             body: JSON.stringify({ action: 'save_record', payload: payload })
                         });
-                        
-                        // Remove from local if successful
                         const currentLocal = JSON.parse(localStorage.getItem('torque_records') || '[]');
                         const newLocal = currentLocal.filter(r => r.id !== rec.id);
                         localStorage.setItem('torque_records', JSON.stringify(newLocal));
                         successCount++;
-                    } catch(e) {
-                        console.error("Sync failed for record", e);
-                    }
+                    } catch(e) { console.error("Sync failed", e); }
                 }
                 
                 btn.innerHTML = originalText;
                 lucide.createIcons();
-                
                 if(successCount > 0) {
                     window.showToast(`Synced ${successCount} records!`, "success");
                     Service.subscribeHistory();
@@ -1019,47 +1030,47 @@
             window.renderHistoryTable();
         };
         
-        // --- CONFIG MANAGER ---
+        // --- CONFIG MANAGER (UPDATED FOR CLOUD) ---
         const ConfigService = {
-            load() {
+            loadLocal() {
                 let models = JSON.parse(localStorage.getItem('cfg_models') || '[]');
-                if(models.length === 0) { models = [{main: "CU Classic", sub: "S9HCL110"}]; localStorage.setItem('cfg_models', JSON.stringify(models)); }
+                if(models.length === 0) { models = [{main: "CU Classic", sub: "S9HCL110"}]; }
                 window.state.config.models = models;
 
                 let standards = JSON.parse(localStorage.getItem('cfg_standards') || '[]');
                 if(standards.length === 0) {
                     standards = [{modelGroup:"CU Classic", modelByTorq:"CU Classic", subModel: "S9HCL110", line: "5", station: "6", part: "75504066AA", desc: "Cover screw", minNm: 2.6, maxNm: 3.05}];
-                    localStorage.setItem('cfg_standards', JSON.stringify(standards));
                 }
                 window.state.config.standards = standards;
-                
-                window.state.config.parts = JSON.parse(localStorage.getItem('cfg_parts') || '[]');
                 window.populateDropdowns();
             },
+
             save() {
                 localStorage.setItem('cfg_models', JSON.stringify(window.state.config.models));
                 localStorage.setItem('cfg_standards', JSON.stringify(window.state.config.standards));
-                localStorage.setItem('cfg_parts', JSON.stringify(window.state.config.parts));
+                
+                // SAVE TO CLOUD
+                Service.saveConfig({
+                    models: window.state.config.models,
+                    standards: window.state.config.standards
+                });
+                
                 window.populateDropdowns();
             },
+
             addModel(main, sub) { window.state.config.models.push({ main, sub }); this.save(); },
             removeModel(idx) { window.state.config.models.splice(idx, 1); this.save(); },
             addStandard(std) { 
                 if (std.maxNm <= std.minNm) return alert("Error: Max torque must be greater than Min torque.");
-                window.state.config.standards.push(std); this.addUniquePart(std.part); this.save(); 
+                window.state.config.standards.push(std); this.save(); 
             },
             updateStandard(index, std) {
                 if (std.maxNm <= std.minNm) return alert("Error: Max torque must be greater than Min torque.");
-                window.state.config.standards[index] = std; this.addUniquePart(std.part); this.save();
+                window.state.config.standards[index] = std; this.save();
             },
             removeStandard(idx) { window.state.config.standards.splice(idx, 1); this.save(); },
-            addUniquePart(part) {
-                if (!part || part === '-') return;
-                const parts = part.split('&').map(p => p.trim());
-                parts.forEach(p => { if (!window.state.config.parts.includes(p)) window.state.config.parts.push(p); });
-                window.state.config.parts.sort();
-            },
-            removePart(idx) { window.state.config.parts.splice(idx, 1); this.save(); }
+            addUniquePart(part) { /* Legacy support */ },
+            removePart(idx) { /* Legacy support */ }
         };
 
         window.clearConfig = (type) => {
@@ -1571,12 +1582,11 @@
         window.SyncManager = SyncManager; window.AuthManager = AuthManager; window.ConfigService = ConfigService; window.Service = Service;
         
         // --- INITIALIZATION ---
-        // Check for session
         const storedUser = localStorage.getItem('currentUser');
         if (storedUser) {
             AuthManager.setSession(JSON.parse(storedUser));
         } else {
-            ConfigService.load(); // Load configs even if not logged in (for login screen maybe?)
+            Service.init(); 
             lucide.createIcons();
         }
 
@@ -1584,5 +1594,3 @@
     </script>
 </body>
 </html>
-
-
