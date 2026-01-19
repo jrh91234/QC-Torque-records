@@ -56,51 +56,41 @@
         /* Connection Status Badge */
         .status-badge-online { background-color: #10b981; color: white; }
         .status-badge-offline { background-color: #f59e0b; color: white; }
-
-        /* Lang Switcher */
-        .lang-btn { font-size: 0.75rem; font-weight: bold; padding: 4px 8px; border-radius: 6px; transition: all 0.2s; cursor: pointer; }
-        .lang-btn.active { background-color: #2563eb; color: white; }
-        .lang-btn.inactive { background-color: transparent; color: #94a3b8; border: 1px solid #cbd5e1; }
-        .lang-btn.inactive:hover { background-color: #f1f5f9; color: #64748b; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 min-h-screen pb-24">
 
     <div id="login-overlay">
-        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm mx-4 transform transition-all duration-300 scale-100 relative">
-            <div class="absolute top-4 right-4 flex gap-1 bg-slate-100 p-1 rounded-lg">
-                <button onclick="changeLanguage('th')" class="lang-btn" id="lang-th-login">TH</button>
-                <button onclick="changeLanguage('en')" class="lang-btn" id="lang-en-login">EN</button>
-            </div>
-
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm mx-4 transform transition-all duration-300 scale-100">
             <div class="text-center mb-8">
                 <div class="bg-blue-600 w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-600/30">
                     <i data-lucide="sheet" class="w-8 h-8 text-white"></i>
                 </div>
-                <h1 class="text-2xl font-bold text-slate-800" data-i18n="login_title">System Login</h1>
+                <h1 class="text-2xl font-bold text-slate-800">System Login</h1>
                 <p class="text-slate-500 text-sm mt-1">QC Torque (Cloud Hybrid)</p>
             </div>
             
             <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
                 <div>
-                    <label class="block text-xs font-bold text-slate-500 mb-1 uppercase" data-i18n="login_user_label">Username / ID</label>
+                    <label class="block text-xs font-bold text-slate-500 mb-1 uppercase">Username / ID</label>
                     <div class="relative">
                         <i data-lucide="user" class="w-5 h-5 absolute left-3 top-3 text-slate-400"></i>
-                        <input type="text" id="login-id" class="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" data-placeholder="login_user_ph" placeholder="Enter ID" required>
+                        <input type="text" id="login-id" class="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" placeholder="Enter ID" required>
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-500 mb-1 uppercase" data-i18n="login_pass_label">Password</label>
+                    <label class="block text-xs font-bold text-slate-500 mb-1 uppercase">Password</label>
                     <div class="relative">
                         <i data-lucide="lock" class="w-5 h-5 absolute left-3 top-3 text-slate-400"></i>
-                        <input type="password" id="login-pass" class="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" data-placeholder="login_pass_ph" placeholder="Enter Password" required>
+                        <input type="password" id="login-pass" class="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" placeholder="Enter Password" required>
                     </div>
                 </div>
                 <button type="submit" id="btn-login" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-600/30 transition active:scale-95 flex items-center justify-center gap-2">
-                    <span data-i18n="login_btn">Sign In</span>
+                    <span>Sign In</span>
                     <i data-lucide="arrow-right" class="w-4 h-4"></i>
                 </button>
             </form>
+            
         </div>
     </div>
 
@@ -112,7 +102,7 @@
                         <i data-lucide="sheet" class="w-6 h-6 text-white"></i>
                     </div>
                     <div>
-                        <h1 class="text-lg md:text-xl font-bold tracking-tight leading-tight" data-i18n="app_name">QC Torque Control</h1>
+                        <h1 class="text-lg md:text-xl font-bold tracking-tight leading-tight">QC Torque Control</h1>
                         <div class="flex items-center gap-2">
                             <span id="user-display" class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-600 text-white flex items-center gap-1">
                                 <i data-lucide="user" class="w-3 h-3"></i> <span id="current-user-name">Guest</span>
@@ -126,28 +116,22 @@
                 </div>
 
                 <div class="hidden md:flex items-center gap-3">
-                    <div class="flex gap-1 bg-blue-900/50 p-1 rounded-lg mr-2">
-                        <button onclick="changeLanguage('th')" class="px-2 py-0.5 text-xs font-bold rounded transition text-blue-200 hover:text-white" id="lang-th-header">TH</button>
-                        <div class="w-px bg-blue-700 h-4 self-center"></div>
-                        <button onclick="changeLanguage('en')" class="px-2 py-0.5 text-xs font-bold rounded transition text-blue-200 hover:text-white" id="lang-en-header">EN</button>
-                    </div>
-
                     <button onclick="AuthManager.logout()" class="flex items-center gap-1 bg-red-600/80 hover:bg-red-600 px-3 py-1.5 rounded text-xs font-bold transition shadow-sm">
-                        <i data-lucide="log-out" class="w-3 h-3"></i> <span data-i18n="btn_logout">Logout</span>
+                        <i data-lucide="log-out" class="w-3 h-3"></i> Logout
                     </button>
 
                     <nav class="flex bg-blue-900/50 p-1 rounded-lg">
                         <button onclick="switchView('dashboard')" id="nav-dashboard-desk" class="px-3 py-1.5 rounded-md text-sm font-medium transition flex items-center gap-2 text-white bg-blue-700 shadow">
-                            <i data-lucide="bar-chart-3" class="w-4 h-4"></i> <span data-i18n="menu_dashboard">Dashboard</span>
+                            <i data-lucide="bar-chart-3" class="w-4 h-4"></i> Dashboard
                         </button>
                         <button onclick="switchView('form')" id="nav-form-desk" class="px-3 py-1.5 rounded-md text-sm font-medium transition flex items-center gap-2 text-blue-200 hover:text-white hover:bg-blue-700/50">
-                            <i data-lucide="clipboard-edit" class="w-4 h-4"></i> <span data-i18n="menu_record">Record</span>
+                            <i data-lucide="clipboard-edit" class="w-4 h-4"></i> Record
                         </button>
                         <button onclick="switchView('history')" id="nav-history-desk" class="px-3 py-1.5 rounded-md text-sm font-medium transition flex items-center gap-2 text-blue-200 hover:text-white hover:bg-blue-700/50">
-                            <i data-lucide="history" class="w-4 h-4"></i> <span data-i18n="menu_history">History</span>
+                            <i data-lucide="history" class="w-4 h-4"></i> History
                         </button>
                         <button onclick="switchView('settings')" id="nav-settings-desk" class="px-3 py-1.5 rounded-md text-sm font-medium transition flex items-center gap-2 text-blue-200 hover:text-white hover:bg-blue-700/50">
-                            <i data-lucide="settings" class="w-4 h-4"></i> <span data-i18n="menu_settings">Settings</span>
+                            <i data-lucide="settings" class="w-4 h-4"></i> Settings
                         </button>
                     </nav>
                 </div>
@@ -159,25 +143,20 @@
 
             <div id="mobile-menu" class="md:hidden mt-2 border-t border-blue-700 pt-2 space-y-2 pb-2">
                 <button onclick="switchView('dashboard'); toggleMobileMenu()" id="nav-dashboard-mob" class="w-full px-4 py-3 rounded-lg text-sm font-medium transition flex items-center gap-3 text-white bg-blue-700 shadow active:scale-95">
-                    <i data-lucide="bar-chart-3" class="w-5 h-5"></i> <span data-i18n="menu_dashboard">Dashboard</span>
+                    <i data-lucide="bar-chart-3" class="w-5 h-5"></i> Dashboard
                 </button>
                 <button onclick="switchView('form'); toggleMobileMenu()" id="nav-form-mob" class="w-full px-4 py-3 rounded-lg text-sm font-medium transition flex items-center gap-3 text-blue-100 hover:bg-blue-700 hover:text-white active:scale-95">
-                    <i data-lucide="clipboard-edit" class="w-5 h-5"></i> <span data-i18n="menu_record">Record</span>
+                    <i data-lucide="clipboard-edit" class="w-5 h-5"></i> Record
                 </button>
                 <button onclick="switchView('history'); toggleMobileMenu()" id="nav-history-mob" class="w-full px-4 py-3 rounded-lg text-sm font-medium transition flex items-center gap-3 text-blue-100 hover:bg-blue-700 hover:text-white active:scale-95">
-                    <i data-lucide="history" class="w-5 h-5"></i> <span data-i18n="menu_history">History</span>
+                    <i data-lucide="history" class="w-5 h-5"></i> History
                 </button>
                 <button onclick="switchView('settings'); toggleMobileMenu()" id="nav-settings-mob" class="w-full px-4 py-3 rounded-lg text-sm font-medium transition flex items-center gap-3 text-blue-100 hover:bg-blue-700 hover:text-white active:scale-95">
-                    <i data-lucide="settings" class="w-5 h-5"></i> <span data-i18n="menu_settings">Settings</span>
+                    <i data-lucide="settings" class="w-5 h-5"></i> Settings
                 </button>
-                 <div class="flex justify-center gap-4 py-2 border-t border-blue-700 mt-2">
-                    <button onclick="changeLanguage('th')" class="text-blue-200 font-bold hover:text-white">ภาษาไทย</button>
-                    <span class="text-blue-500">|</span>
-                    <button onclick="changeLanguage('en')" class="text-blue-200 font-bold hover:text-white">English</button>
-                </div>
                 <div class="border-t border-blue-700 pt-2 mt-2">
                      <button onclick="AuthManager.logout()" class="w-full px-4 py-3 rounded-lg text-sm font-medium transition flex items-center gap-3 text-red-200 hover:bg-red-700 hover:text-white active:scale-95">
-                        <i data-lucide="log-out" class="w-5 h-5"></i> <span data-i18n="btn_logout">Logout</span>
+                        <i data-lucide="log-out" class="w-5 h-5"></i> Logout
                     </button>
                 </div>
             </div>
@@ -189,43 +168,43 @@
             <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row gap-4 items-center justify-between">
                 <div class="flex items-center gap-2 w-full md:w-auto">
                     <i data-lucide="calendar-range" class="w-5 h-5 text-blue-500"></i>
-                    <span class="font-bold text-slate-700" data-i18n="filter_range">Filter Range:</span>
+                    <span class="font-bold text-slate-700">Filter Range:</span>
                 </div>
                 <div class="flex gap-2 w-full md:w-auto">
                     <input type="date" id="dash-date-start" class="border rounded p-2 text-sm w-full md:w-auto touch-target h-10" onchange="window.updateDashboard()">
-                    <span class="self-center text-slate-400" data-i18n="label_to">to</span>
+                    <span class="self-center text-slate-400">to</span>
                     <input type="date" id="dash-date-end" class="border rounded p-2 text-sm w-full md:w-auto touch-target h-10" onchange="window.updateDashboard()">
                 </div>
             </div>
 
             <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                <h2 class="text-lg font-bold text-slate-800 mb-2" data-i18n="dash_quality_overview">ภาพรวมคุณภาพ (Quality Overview)</h2>
+                <h2 class="text-lg font-bold text-slate-800 mb-2">ภาพรวมคุณภาพ (Quality Overview)</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div class="flex flex-col items-center">
-                        <h3 class="text-sm font-semibold text-slate-600 mb-4" data-i18n="dash_ratio">อัตราส่วนผ่านเกณฑ์ (Pass/Fail Ratio)</h3>
+                        <h3 class="text-sm font-semibold text-slate-600 mb-4">อัตราส่วนผ่านเกณฑ์ (Pass/Fail Ratio)</h3>
                         <div class="chart-container w-full flex justify-center"><canvas id="chart-ratio"></canvas></div>
                     </div>
                     <div class="flex flex-col items-center">
-                        <h3 class="text-sm font-semibold text-slate-600 mb-4" data-i18n="dash_activity">จำนวนการตรวจสอบแยกตามไลน์ (Inspection by Line)</h3>
+                        <h3 class="text-sm font-semibold text-slate-600 mb-4">จำนวนการตรวจสอบแยกตามไลน์ (Inspection by Line)</h3>
                         <div class="chart-container w-full"><canvas id="chart-activity"></canvas></div>
                     </div>
                 </div>
             </div>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                    <p class="text-xs text-blue-500 font-bold uppercase" data-i18n="stat_total">Total Records</p>
+                    <p class="text-xs text-blue-500 font-bold uppercase">Total Records</p>
                     <p class="text-2xl font-bold text-blue-700" id="stat-total">0</p>
                 </div>
                 <div class="bg-green-50 p-4 rounded-xl border border-green-100">
-                    <p class="text-xs text-green-500 font-bold uppercase" data-i18n="stat_passed">Passed</p>
+                    <p class="text-xs text-green-500 font-bold uppercase">Passed</p>
                     <p class="text-2xl font-bold text-green-700" id="stat-pass">0</p>
                 </div>
                 <div class="bg-red-50 p-4 rounded-xl border border-red-100">
-                    <p class="text-xs text-red-500 font-bold uppercase" data-i18n="stat_failed">Failed</p>
+                    <p class="text-xs text-red-500 font-bold uppercase">Failed</p>
                     <p class="text-2xl font-bold text-red-700" id="stat-fail">0</p>
                 </div>
                 <div class="bg-purple-50 p-4 rounded-xl border border-purple-100">
-                    <p class="text-xs text-purple-500 font-bold uppercase" data-i18n="stat_selected">Selected Range</p>
+                    <p class="text-xs text-purple-500 font-bold uppercase">Selected Range</p>
                     <p class="text-2xl font-bold text-purple-700" id="stat-today">0</p>
                 </div>
             </div>
@@ -233,22 +212,22 @@
 
         <div id="view-settings" class="hidden fade-in space-y-6">
             <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <i data-lucide="settings" class="w-5 h-5"></i> <span data-i18n="set_title">ตั้งค่าระบบ (Configuration)</span>
+                <i data-lucide="settings" class="w-5 h-5"></i> <span>ตั้งค่าระบบ (Configuration)</span>
             </h2>
 
             <div class="flex space-x-1 bg-slate-200 p-1 rounded-lg w-full overflow-x-auto">
-                <button onclick="switchSettingsTab('standards')" id="tab-standards" class="flex-1 min-w-[80px] px-2 py-2 text-sm rounded-md font-medium bg-white shadow text-blue-700 whitespace-nowrap text-center touch-target" data-i18n="set_tab_std">Standards</button>
+                <button onclick="switchSettingsTab('standards')" id="tab-standards" class="flex-1 min-w-[80px] px-2 py-2 text-sm rounded-md font-medium bg-white shadow text-blue-700 whitespace-nowrap text-center touch-target">Standards</button>
                 <button onclick="switchSettingsTab('users')" id="tab-users" class="hidden flex-1 min-w-[80px] px-2 py-2 text-sm rounded-md font-medium text-slate-600 hover:bg-white/50 whitespace-nowrap flex items-center justify-center gap-1 touch-target">
-                     <i data-lucide="users" class="w-3 h-3"></i> <span data-i18n="set_tab_users">Users</span>
+                     <i data-lucide="users" class="w-3 h-3"></i> Users
                 </button>
                 <button onclick="switchSettingsTab('tools')" id="tab-tools" class="flex-1 min-w-[80px] px-2 py-2 text-sm rounded-md font-medium text-slate-600 hover:bg-white/50 whitespace-nowrap flex items-center justify-center gap-1 touch-target">
-                    <i data-lucide="database" class="w-3 h-3"></i> <span data-i18n="set_tab_data">Data</span>
+                    <i data-lucide="database" class="w-3 h-3"></i> Data
                 </button>
             </div>
 
             <div id="settings-standards" class="settings-content bg-white p-6 rounded-xl border border-slate-200">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-bold text-slate-700" data-i18n="set_std_header">Add/Edit Torque Standards</h3>
+                    <h3 class="font-bold text-slate-700">Add/Edit Torque Standards</h3>
                     <div class="flex gap-2">
                          <button onclick="clearConfig('standards')" class="px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 rounded-lg text-xs font-bold flex items-center gap-1 transition">
                             <i data-lucide="trash-2" class="w-3 h-3"></i> Clear
@@ -296,7 +275,7 @@
                     </div>
                 </div>
                 <button onclick="addConfigStandard()" id="btn-add-standard" class="w-full mb-4 px-4 py-3 bg-blue-600 text-white rounded-md text-sm font-bold hover:bg-blue-700 flex items-center justify-center gap-2 shadow-sm transition active:scale-95 touch-target">
-                    <i data-lucide="plus-circle" class="w-4 h-4"></i> <span data-i18n="btn_add_std">Add Standard</span>
+                    <i data-lucide="plus-circle" class="w-4 h-4"></i> Add Standard
                 </button>
                 <div class="overflow-x-auto max-h-80 overflow-y-auto border rounded-lg">
                     <table class="w-full text-sm text-left">
@@ -318,10 +297,10 @@
                 </div>
                 
                 <div class="mt-8 border-t pt-6">
-                    <h4 class="font-bold text-slate-700 mb-4" data-i18n="set_manage_parts">Manage Unique Parts</h4>
+                    <h4 class="font-bold text-slate-700 mb-4">Manage Unique Parts</h4>
                     <div class="flex gap-2 mb-4">
-                        <input type="text" id="cfg-part-new" class="flex-1 p-2 border rounded-md text-sm h-10" data-placeholder="ph_add_part" placeholder="Add new part number...">
-                        <button onclick="addManualPart()" class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-bold hover:bg-blue-700 touch-target" data-i18n="btn_add_part">Add Part</button>
+                        <input type="text" id="cfg-part-new" class="flex-1 p-2 border rounded-md text-sm h-10" placeholder="Add new part number...">
+                        <button onclick="addManualPart()" class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-bold hover:bg-blue-700 touch-target">Add Part</button>
                     </div>
                     <div class="overflow-x-auto max-h-40 overflow-y-auto border rounded-lg">
                         <table class="w-full text-sm text-left">
@@ -339,7 +318,7 @@
 
             <div id="settings-users" class="settings-content hidden bg-white p-6 rounded-xl border border-slate-200">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-bold text-slate-700" data-i18n="set_user_mgmt">User Management</h3>
+                    <h3 class="font-bold text-slate-700">User Management</h3>
                     <div class="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">
                         <i data-lucide="info" class="w-3 h-3 inline"></i> Only Admins can manage users
                     </div>
@@ -347,7 +326,7 @@
 
                 <div class="bg-blue-50 border border-blue-100 p-4 rounded-xl mb-6">
                     <h4 class="text-sm font-bold text-blue-700 mb-3 flex items-center gap-2">
-                        <i data-lucide="user-plus" class="w-4 h-4"></i> <span data-i18n="set_create_user">Create / Update User</span>
+                        <i data-lucide="user-plus" class="w-4 h-4"></i> Create / Update User
                     </h4>
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                         <div>
@@ -394,7 +373,7 @@
 
             <div id="settings-tools" class="settings-content hidden bg-white p-6 rounded-xl border border-slate-200">
                 <h3 class="font-bold text-slate-700 mb-4 flex items-center gap-2">
-                    <i data-lucide="database" class="w-5 h-5 text-blue-600"></i> <span data-i18n="set_data_mgmt">Data Management Tools</span>
+                    <i data-lucide="database" class="w-5 h-5 text-blue-600"></i> Data Management Tools
                 </h3>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -422,7 +401,7 @@
                         </h4>
                         <input type="file" id="file-import" accept=".csv" class="hidden" onchange="importData(event)">
                         <button onclick="document.getElementById('file-import').click()" class="mt-auto w-full px-4 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-sm shadow-md flex items-center justify-center gap-2 transition transform active:scale-95 touch-target">
-                            <i data-lucide="file-up" class="w-5 h-5"></i> <span data-i18n="btn_import">Select CSV File to Import</span>
+                            <i data-lucide="file-up" class="w-5 h-5"></i> Select CSV File to Import
                         </button>
                     </div>
                 </div>
@@ -432,7 +411,7 @@
         <div id="view-form" class="hidden fade-in space-y-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <h2 class="text-lg font-bold text-slate-800" data-i18n="rec_title">บันทึกผลการตรวจสอบ (New Inspection)</h2>
+                    <h2 class="text-lg font-bold text-slate-800">บันทึกผลการตรวจสอบ (New Inspection)</h2>
                 </div>
             </div>
 
@@ -514,7 +493,7 @@
                 <div class="p-4 bg-slate-50 border-b border-slate-200 flex flex-col md:flex-row justify-between items-center gap-2">
                     <div>
                         <h3 class="font-bold text-slate-700 flex items-center gap-2">
-                            <i data-lucide="list-checks" class="w-4 h-4 text-blue-500"></i> <span data-i18n="rec_points">Inspection Points</span>
+                            <i data-lucide="list-checks" class="w-4 h-4 text-blue-500"></i> <span>Inspection Points</span>
                         </h3>
                         <span id="label-context" class="text-xs font-mono text-slate-500"></span>
                     </div>
@@ -569,11 +548,11 @@
 
                 <div class="p-4 bg-slate-50 border-t border-slate-200 space-y-4">
                     <button onclick="addManualItem()" class="w-full py-3 border-2 border-dashed border-slate-300 rounded-lg text-slate-500 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50 transition flex items-center justify-center gap-2 text-sm font-medium active:bg-slate-100 touch-target">
-                        <i data-lucide="plus" class="w-4 h-4"></i> <span data-i18n="btn_add_manual">Add Manual Check</span>
+                        <i data-lucide="plus" class="w-4 h-4"></i> <span>Add Manual Check</span>
                     </button>
                     <div class="flex flex-col items-center gap-2 pt-2">
                         <button onclick="submitData()" id="btn-submit" class="w-full md:w-auto px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-md font-bold flex items-center justify-center gap-2 transition disabled:bg-slate-300 active:scale-95 touch-target h-12">
-                            <i data-lucide="save" class="w-5 h-5"></i> <span data-i18n="btn_save">Save Record</span>
+                            <i data-lucide="save" class="w-5 h-5"></i> <span>Save Record</span>
                         </button>
                     </div>
                 </div>
@@ -587,23 +566,23 @@
             <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row gap-4 items-center justify-between mb-4">
                 <div class="flex items-center gap-2 w-full md:w-auto">
                     <i data-lucide="filter" class="w-5 h-5 text-blue-500"></i>
-                    <span class="font-bold text-slate-700" data-i18n="hist_filter">Date Filter:</span>
+                    <span class="font-bold text-slate-700">Date Filter:</span>
                 </div>
                 <div class="flex gap-2 w-full md:w-auto">
                     <input type="date" id="hist-date-start" class="border rounded p-2 text-sm w-full md:w-auto touch-target h-10" onchange="window.renderHistoryTable()">
-                    <span class="self-center text-slate-400" data-i18n="label_to">to</span>
+                    <span class="self-center text-slate-400">to</span>
                     <input type="date" id="hist-date-end" class="border rounded p-2 text-sm w-full md:w-auto touch-target h-10" onchange="window.renderHistoryTable()">
                 </div>
             </div>
 
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-                <h2 class="text-lg font-bold text-slate-800" data-i18n="hist_title">ประวัติการตรวจสอบ (History Log)</h2>
+                <h2 class="text-lg font-bold text-slate-800">ประวัติการตรวจสอบ (History Log)</h2>
                 <div class="flex gap-2 w-full md:w-auto">
                     <button onclick="clearHistory()" class="flex-1 md:flex-none px-4 py-3 bg-red-50 text-red-600 border border-red-200 rounded-lg flex items-center justify-center gap-2 text-sm transition active:bg-red-100 touch-target cursor-pointer">
-                        <i data-lucide="trash-2" class="w-4 h-4"></i> <span data-i18n="btn_clear_local">Clear (Local)</span>
+                        <i data-lucide="trash-2" class="w-4 h-4"></i> Clear (Local)
                     </button>
                     <button onclick="exportToCSV()" class="flex-1 md:flex-none px-4 py-3 bg-emerald-600 text-white rounded-lg flex items-center justify-center gap-2 text-sm transition active:bg-emerald-700 touch-target cursor-pointer">
-                        <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> <span data-i18n="btn_export">Export CSV</span>
+                        <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> Export CSV
                     </button>
                 </div>
             </div>
@@ -629,19 +608,6 @@
 
     </main>
 
-    <div id="detail-modal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-50 p-4 backdrop-blur-sm transition-opacity opacity-0">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col transform scale-95 transition-all duration-300">
-            <div class="p-4 border-b border-slate-100 flex justify-between items-center">
-                <h3 class="font-bold text-lg text-slate-800" data-i18n="modal_detail_title">Inspection Details</h3>
-                <button onclick="closeModal()" class="p-2 hover:bg-slate-100 rounded-full transition"><i data-lucide="x" class="w-5 h-5 text-slate-500"></i></button>
-            </div>
-            <div id="modal-content" class="p-6 overflow-y-auto modal-scroll"></div>
-            <div class="p-4 border-t border-slate-100 bg-slate-50 rounded-b-xl flex justify-end">
-                <button onclick="closeModal()" class="px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg font-bold text-sm transition">Close</button>
-            </div>
-        </div>
-    </div>
-
     <div id="toast-container" class="toast-container"></div>
 
    <div id="quick-add-modal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[10000] p-4 backdrop-blur-sm transition-opacity opacity-0">
@@ -650,7 +616,7 @@
                 <div class="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
                     <i data-lucide="user-plus" class="w-6 h-6 text-blue-600"></i>
                 </div>
-                <h3 class="text-lg font-bold text-slate-800" data-i18n="modal_add_person">Add New Person</h3>
+                <h3 class="text-lg font-bold text-slate-800">Add New Person</h3>
                 <p class="text-xs text-slate-500">For <span id="quick-add-role-label">User</span></p>
             </div>
             
@@ -676,204 +642,6 @@
         </div>
     </div>
     <script>
-        // --- TRANSLATION DATA ---
-        const i18n = {
-            th: {
-                login_title: "เข้าสู่ระบบ",
-                login_user_label: "รหัสผู้ใช้ / ID",
-                login_pass_label: "รหัสผ่าน",
-                login_user_ph: "ระบุ ID",
-                login_pass_ph: "ระบุรหัสผ่าน",
-                login_btn: "เข้าสู่ระบบ",
-                app_name: "ระบบควบคุม QC Torque",
-                btn_logout: "ออกจากระบบ",
-                menu_dashboard: "แดชบอร์ด",
-                menu_record: "บันทึกข้อมูล",
-                menu_history: "ประวัติ",
-                menu_settings: "ตั้งค่า",
-                filter_range: "ช่วงเวลา:",
-                label_to: "ถึง",
-                dash_quality_overview: "ภาพรวมคุณภาพ (Quality Overview)",
-                dash_ratio: "อัตราส่วนผ่านเกณฑ์ (Pass/Fail Ratio)",
-                dash_activity: "จำนวนการตรวจสอบแยกตามไลน์ (Inspection by Line)",
-                stat_total: "จำนวนบันทึก",
-                stat_passed: "ผ่านเกณฑ์",
-                stat_failed: "ไม่ผ่าน",
-                stat_selected: "ช่วงเวลาที่เลือก",
-                set_title: "ตั้งค่าระบบ (Configuration)",
-                set_tab_std: "มาตรฐาน (Std)",
-                set_tab_users: "ผู้ใช้งาน",
-                set_tab_data: "จัดการข้อมูล",
-                set_std_header: "เพิ่ม/แก้ไข ค่ามาตรฐาน Torque",
-                set_manage_parts: "จัดการรายชื่อชิ้นงาน (Parts)",
-                ph_add_part: "เพิ่มเลข Part ใหม่...",
-                btn_add_part: "เพิ่ม Part",
-                set_user_mgmt: "จัดการผู้ใช้งาน",
-                set_create_user: "สร้าง / แก้ไข ผู้ใช้",
-                set_data_mgmt: "เครื่องมือจัดการข้อมูล",
-                btn_import: "เลือกไฟล์ CSV เพื่อนำเข้า",
-                btn_add_std: "เพิ่มมาตรฐาน",
-                rec_title: "บันทึกผลการตรวจสอบ (New Inspection)",
-                rec_points: "จุดตรวจสอบ",
-                btn_add_manual: "เพิ่มจุดตรวจแบบกำหนดเอง",
-                btn_save: "บันทึกข้อมูล",
-                hist_filter: "กรองวันที่:",
-                hist_title: "ประวัติการตรวจสอบ (History Log)",
-                btn_clear_local: "ลบประวัติ (เครื่องนี้)",
-                btn_export: "ส่งออก CSV",
-                modal_detail_title: "รายละเอียดการตรวจสอบ",
-                modal_add_person: "เพิ่มพนักงานใหม่",
-                // Alerts & JS strings
-                alert_login_fail: "ไม่พบผู้ใช้หรือรหัสผ่านผิด",
-                alert_login_deactive: "บัญชีถูกระงับ",
-                alert_sync_success: "ซิงค์ข้อมูลสำเร็จ!",
-                alert_save_success: "บันทึกข้อมูลสำเร็จ!",
-                alert_delete_confirm: "คุณแน่ใจหรือไม่ที่จะลบรายการนี้?",
-                alert_delete_undo_msg: "ลบรายการแล้ว...",
-                alert_undo: "ยกเลิก (Undo)",
-                val_pass: "ผ่าน",
-                val_fail: "ไม่ผ่าน",
-                table_no_data: "ไม่พบข้อมูล",
-                txt_active: "ใช้งาน",
-                txt_inactive: "ระงับ",
-                ph_search_user: "สแกน/เลือก ชื่อ...",
-                txt_welcome: "ยินดีต้อนรับ"
-            },
-            en: {
-                login_title: "System Login",
-                login_user_label: "USERNAME / ID",
-                login_pass_label: "PASSWORD",
-                login_user_ph: "Enter ID",
-                login_pass_ph: "Enter Password",
-                login_btn: "Sign In",
-                app_name: "QC Torque Control",
-                btn_logout: "Logout",
-                menu_dashboard: "Dashboard",
-                menu_record: "Record",
-                menu_history: "History",
-                menu_settings: "Settings",
-                filter_range: "Filter Range:",
-                label_to: "to",
-                dash_quality_overview: "Quality Overview",
-                dash_ratio: "Pass/Fail Ratio",
-                dash_activity: "Inspection by Line",
-                stat_total: "Total Records",
-                stat_passed: "Passed",
-                stat_failed: "Failed",
-                stat_selected: "Selected Range",
-                set_title: "Configuration",
-                set_tab_std: "Standards",
-                set_tab_users: "Users",
-                set_tab_data: "Data Tools",
-                set_std_header: "Add/Edit Torque Standards",
-                set_manage_parts: "Manage Unique Parts",
-                ph_add_part: "Add new part number...",
-                btn_add_part: "Add Part",
-                set_user_mgmt: "User Management",
-                set_create_user: "Create / Update User",
-                set_data_mgmt: "Data Management Tools",
-                btn_import: "Select CSV File to Import",
-                btn_add_std: "Add Standard",
-                rec_title: "New Inspection Record",
-                rec_points: "Inspection Points",
-                btn_add_manual: "Add Manual Check",
-                btn_save: "Save Record",
-                hist_filter: "Date Filter:",
-                hist_title: "History Log",
-                btn_clear_local: "Clear (Local)",
-                btn_export: "Export CSV",
-                modal_detail_title: "Inspection Details",
-                modal_add_person: "Add New Person",
-                // Alerts & JS strings
-                alert_login_fail: "User not found or incorrect password.",
-                alert_login_deactive: "Account deactivated.",
-                alert_sync_success: "Configuration Synced!",
-                alert_save_success: "Saved successfully!",
-                alert_delete_confirm: "Are you sure you want to delete this record?",
-                alert_delete_undo_msg: "Record deleted...",
-                alert_undo: "Undo",
-                val_pass: "PASS",
-                val_fail: "FAIL",
-                table_no_data: "No data found.",
-                txt_active: "Active",
-                txt_inactive: "Inactive",
-                ph_search_user: "Scan/Select User...",
-                txt_welcome: "Welcome"
-            }
-        };
-
-        window.currentLang = localStorage.getItem('app_lang') || 'th';
-
-        window.t = (key) => {
-            return i18n[window.currentLang][key] || key;
-        };
-
-        window.changeLanguage = (lang) => {
-            window.currentLang = lang;
-            localStorage.setItem('app_lang', lang);
-            
-            // Update UI elements with data-i18n
-            document.querySelectorAll('[data-i18n]').forEach(el => {
-                const key = el.getAttribute('data-i18n');
-                if (i18n[lang][key]) el.textContent = i18n[lang][key];
-            });
-
-            // Update placehoders
-            document.querySelectorAll('[data-placeholder]').forEach(el => {
-                const key = el.getAttribute('data-placeholder');
-                if (i18n[lang][key]) el.placeholder = i18n[lang][key];
-            });
-
-            // Update specific dynamic inputs
-            const userInputs = ['input-leader', 'input-qc'];
-            userInputs.forEach(id => {
-                const el = document.getElementById(id);
-                if(el) el.placeholder = t('ph_search_user');
-            });
-
-            // Update Button Styles
-            updateLangButtons(lang);
-
-            // Re-render Dynamic Content
-            if(window.state && window.state.view) {
-                if(window.state.view === 'dashboard') window.updateDashboard();
-                if(window.state.view === 'history') window.renderHistoryTable();
-                if(window.state.view === 'settings') window.renderSettings();
-            }
-        };
-
-        function updateLangButtons(lang) {
-            const btns = {
-                'th': ['lang-th-login', 'lang-th-header'],
-                'en': ['lang-en-login', 'lang-en-header']
-            };
-            
-            // Reset all
-            Object.values(btns).flat().forEach(id => {
-                const el = document.getElementById(id);
-                if(el) {
-                    el.classList.remove('active', 'text-white', 'bg-blue-700'); 
-                    el.classList.add('inactive', 'text-blue-200'); // Default header style
-                    
-                    // Specific fix for login page buttons which have different classes
-                    if(id.includes('login')) {
-                        el.classList.remove('text-blue-200');
-                        el.classList.add('text-slate-400');
-                    }
-                }
-            });
-
-            // Set Active
-            btns[lang].forEach(id => {
-                const el = document.getElementById(id);
-                if(el) {
-                    el.classList.remove('inactive', 'text-blue-200', 'text-slate-400');
-                    el.classList.add('active'); // active handles bg-blue
-                    if(id.includes('header')) el.classList.add('text-white');
-                }
-            });
-        }
-
         // --- GOOGLE APPS SCRIPT URL ---
         const GAS_API_URL = "https://script.google.com/macros/s/AKfycbw005nlitvAWq-kA-rWoGX0B-ovzq9kbT7mroOdLSHERaF12-LjfwDuQM3j0jZBaMTVYg/exec";
 
@@ -912,28 +680,6 @@
                 window.updateStatusUI(true);
             },
 
-            async logUserActivity(user, actionType) {
-        if (window.state.isOffline) return; // ถ้า Offline ไม่ต้องส่ง หรือจะเก็บลง Local ก่อนก็ได้
-        
-        try {
-            const payload = {
-                id: user.id,
-                name: user.name,
-                role: user.role,
-                action: actionType, // "Login" หรือ "Logout"
-                note: navigator.userAgent // เก็บข้อมูล Browser/Device คร่าวๆ
-            };
-            
-            // ส่งแบบ Fire & Forget (ไม่ต้องรอผลลัพธ์เพื่อความลื่นไหล)
-            fetch(GAS_API_URL, {
-                method: 'POST',
-                body: JSON.stringify({ action: 'save_login', payload: payload })
-            }).catch(e => console.warn("Log failed:", e));
-            
-        } catch (e) {
-            console.error("Activity Log Error:", e);
-        }
-    },
            // --- แก้ไขใน object Service ---
 
             async syncUsersOnly() {
@@ -985,7 +731,7 @@
                         // เรียกฟังก์ชัน Sync Dropdown ของ Personnel
                         window.syncPersonnelDropdowns(); 
                         
-                        window.showToast(t('alert_sync_success'), "success");
+                        window.showToast("Configuration Synced!", "success");
                     }
                 } catch (e) {
                     console.error("Config Load Error:", e);
@@ -999,7 +745,7 @@
                     window.showToast("Syncing Config to Cloud...", "info");
                     const payload = { action: 'save_config', payload: newConfigData };
                     await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify(payload) });
-                    window.showToast(t('alert_save_success'), "success");
+                    window.showToast("Configuration Saved to Cloud!", "success");
                 } catch (e) {
                     console.error("Config Save Error:", e);
                     window.showToast("Save Config Failed (Offline)", "error");
@@ -1016,7 +762,7 @@
                     
                     const result = await response.json();
                     if(result.status === 'success') {
-                        window.showToast(t('alert_save_success'), "success");
+                        window.showToast("Saved to Google Sheets!", "success");
                         this.subscribeHistory();
                     } else {
                         throw new Error(result.message || "Unknown Error");
@@ -1128,16 +874,15 @@
                 
                 this.resetLoginBtn(btn, originalHtml);
 
-                if (!user) { window.showToast(t('alert_login_fail'), "error"); return false; }
-                if (!user.isActive) { alert(t('alert_login_deactive')); return false; }
+                if (!user) { window.showToast("User not found.", "error"); return false; }
+                if (!user.isActive) { alert("Account deactivated."); return false; }
                 
                 if (String(user.password) !== String(pass)) { 
-                    window.showToast(t('alert_login_fail'), "error"); 
+                    window.showToast("Incorrect password.", "error"); 
                     return false; 
                 }
                 
                 this.setSession(user);
-                Service.logUserActivity(user, "Login");
                 return true;
             },
             
@@ -1165,18 +910,14 @@
                     userTab.classList.add('hidden');
                 }
                 
-                window.showToast(`${t('txt_welcome')}, ${escapeHtml(userData.name)}!`, 'success');
+                window.showToast(`Welcome, ${escapeHtml(userData.name)}!`, 'success');
                 Service.init(); 
             },
 
             logout() {
-                if (window.state.user) {
-                    Service.logUserActivity(window.state.user, "Logout");
-                }
-                
                 window.state.user = null;
                 localStorage.removeItem('currentUser');
-                location.reload() 
+                location.reload(); 
             },
 
             async saveUser() {
@@ -1260,8 +1001,8 @@
 
                 tbody.innerHTML = window.state.config.users.map(u => {
                     const statusBadge = u.isActive 
-                        ? `<span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold">${t('txt_active')}</span>` 
-                        : `<span class="px-2 py-1 bg-gray-100 text-gray-500 rounded text-xs font-bold">${t('txt_inactive')}</span>`;
+                        ? '<span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold">Active</span>' 
+                        : '<span class="px-2 py-1 bg-gray-100 text-gray-500 rounded text-xs font-bold">Inactive</span>';
                     
                     const btnAction = u.isActive 
                         ? `<button onclick="AuthManager.toggleUserStatus('${escapeHtml(u.id)}', true)" class="text-red-500 hover:bg-red-50 px-2 py-1 rounded text-xs border border-red-200">Deactivate</button>`
@@ -1559,7 +1300,7 @@
         };
 
         window.validateRange = (id) => { const item = window.state.items.find(i => i.id === id); if (!item || item.type === 'Standard') return; const maxEl = document.getElementById(`max-${id}`); if(maxEl) { if (item.max <= item.min && item.max !== 0) maxEl.classList.add('border-red-500', 'bg-red-50', 'text-red-600'); else maxEl.classList.remove('border-red-500', 'bg-red-50', 'text-red-600'); } };
-        window.validateStatusUI = (id) => { const item = window.state.items.find(i => i.id === id); const row = document.getElementById(`row-${id}`); if (!item || !row) return; const stCell = row.querySelector('.status-cell'); const actVal = parseFloat(item.actual); if (isNaN(actVal) || item.actual === '') { stCell.innerHTML = ''; return; } stCell.innerHTML = (actVal >= item.min && actVal <= item.max) ? `<span class="text-green-600">${t('val_pass')}</span>` : `<span class="text-red-600">${t('val_fail')}</span>`; };
+        window.validateStatusUI = (id) => { const item = window.state.items.find(i => i.id === id); const row = document.getElementById(`row-${id}`); if (!item || !row) return; const stCell = row.querySelector('.status-cell'); const actVal = parseFloat(item.actual); if (isNaN(actVal) || item.actual === '') { stCell.innerHTML = ''; return; } stCell.innerHTML = (actVal >= item.min && actVal <= item.max) ? '<span class="text-green-600">OK</span>' : '<span class="text-red-600">NG</span>'; };
         window.updateItem = (id, field, value) => { const item = window.state.items.find(i => i.id === id); if(item) item[field] = value; };
         window.removeItem = (id) => { window.state.items = window.state.items.filter(i => i.id !== id); window.renderTable(); };
         window.duplicateItem = (id) => { const item = window.state.items.find(i => i.id === id); if (item) { window.state.items.splice(window.state.items.findIndex(i => i.id === id) + 1, 0, { ...item, id: `dup-${Date.now()}`, type: 'Manual', actual: '' }); window.renderTable(); } };
@@ -1660,7 +1401,7 @@
             
             // กรณีไม่มีข้อมูล
             if (data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400 italic">${t('table_no_data')}</td></tr>`;
+                tbody.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-slate-400 italic">No history records found.</td></tr>';
                 return;
             }
 
@@ -1692,8 +1433,8 @@
                        </span>`;
 
                 const overallStatus = r.readings.every(rd => rd.status === 'pass') 
-                    ? `<span class="text-green-600 font-bold">${t('val_pass')}</span>` 
-                    : `<span class="text-red-600 font-bold">${t('val_fail')}</span>`;
+                    ? '<span class="text-green-600 font-bold">PASS</span>' 
+                    : '<span class="text-red-600 font-bold">FAIL</span>';
 
                 // เพิ่ม id="hist-row-..." ที่ <tr> เพื่อให้ระบบ Undo ซ่อน/แสดง แถวได้ถูกต้อง
                 return `
@@ -1735,7 +1476,7 @@
         // ฟังก์ชันเมื่อกดปุ่มถังขยะ
         window.handleDeleteWithUndo = (id) => {
             // 1. ถามยืนยัน (Confirmation)
-            if (!confirm(t('alert_delete_confirm'))) {
+            if (!confirm("คุณแน่ใจหรือไม่ที่จะลบรายการนี้?")) {
                 return;
             }
 
@@ -1794,7 +1535,7 @@
             }
 
             // แจ้งเตือนเล็กน้อยว่ากู้คืนแล้ว
-            // window.showToast("ยกเลิกการลบเรียบร้อย", "success");
+            window.showToast("ยกเลิกการลบเรียบร้อย", "success");
         };
 
         // ฟังก์ชันสร้าง Toast สำหรับ Undo
@@ -1808,10 +1549,10 @@
             toast.innerHTML = `
                 <div class="flex items-center gap-2">
                     <i data-lucide="trash" class="w-4 h-4 text-red-300"></i>
-                    <span class="text-sm">${t('alert_delete_undo_msg')}</span>
+                    <span class="text-sm">ลบรายการแล้ว...</span>
                 </div>
                 <button onclick="cancelDelete('${id}')" class="px-3 py-1.5 bg-white text-slate-900 text-xs font-bold rounded hover:bg-slate-200 transition active:scale-95 flex items-center gap-1 shadow-sm">
-                    <i data-lucide="undo-2" class="w-3 h-3"></i> ${t('alert_undo')}
+                    <i data-lucide="undo-2" class="w-3 h-3"></i> ยกเลิก (Undo)
                 </button>
             `;
             
@@ -2009,5 +1750,395 @@
             if (type === 'success') { bgClass = 'toast-success'; content = `<div class="flex items-center gap-2"><i data-lucide="check-circle" class="w-5 h-5"></i><span>${msg}</span></div>`; } 
             else if (type === 'info') { bgClass = 'toast-info'; content = `<div class="flex items-center gap-2"><i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i><span>${msg}</span></div>`; } 
             else if (type === 'undo') { bgClass = 'toast-undo'; content = `<div class="flex items-center gap-2"><span>${msg}</span></div>`; } 
-            else if (type === 'error') { bgClass = 'toast-error'; content = `<div class="flex items-center gap-2"><i data-lucide="alert-circle" class="w-5 h-5"></i><span>${msg}</span>
+            else if (type === 'error') { bgClass = 'toast-error'; content = `<div class="flex items-center gap-2"><i data-lucide="alert-circle" class="w-5 h-5"></i><span>${msg}</span></div>`; }
+            toast.className = `toast ${bgClass}`; toast.innerHTML = content;
+            container.appendChild(toast);
+            lucide.createIcons();
+            requestAnimationFrame(() => toast.classList.add('show'));
+            setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 4000);
+        };
+
+        // --- DETAIL MODAL LOGIC (EDIT/DELETE) ---
+        
+        window.editDetailRow = (id, index) => {
+            window.state.editingRow = { id, index };
+            window.viewHistoryDetail(id);
+        };
+
+        window.cancelDetailEdit = (id) => {
+            window.state.editingRow = null;
+            window.viewHistoryDetail(id);
+        };
+
+        window.saveDetailRow = async (id, index) => {
+            const record = window.state.historyData.find(r => r.id === id);
+            if (!record) return;
+
+            const newStation = document.getElementById(`edit-station-${index}`).value;
+            const newPart = document.getElementById(`edit-part-${index}`).value;
+            const newActual = parseFloat(document.getElementById(`edit-actual-${index}`).value);
+
+            if (isNaN(newActual)) return alert("Actual value must be a number");
+
+            const item = record.readings[index];
+            item.station = newStation;
+            item.part = newPart;
+            item.actual = newActual;
+            
+            // Re-calc pass/fail
+            const min = parseFloat(item.standardMin) || 0;
+            const max = parseFloat(item.standardMax) || 0;
+            item.status = (newActual >= min && newActual <= max) ? 'pass' : 'fail';
+
+            await updateHistoryRecord(record);
+            
+            window.state.editingRow = null;
+            window.viewHistoryDetail(id);
+            window.renderHistoryTable();
+            window.showToast("Item updated!", "success");
+        };
+
+        window.deleteDetailRow = async (id, index) => {
+            if (!confirm("Are you sure you want to delete this item?")) return;
+
+            const record = window.state.historyData.find(r => r.id === id);
+            if (!record) return;
+
+            record.readings.splice(index, 1);
+
+            if (record.readings.length === 0) {
+                if(confirm("All items deleted. Delete the entire record?")) {
+                    Service.deleteRecord(id);
+                    window.closeModal();
+                    return;
+                }
+            }
+
+            await updateHistoryRecord(record);
+            window.viewHistoryDetail(id);
+            window.renderHistoryTable();
+            window.showToast("Item deleted", "undo");
+        };
+
+        async function updateHistoryRecord(updatedRecord) {
+            // Local update
+            let localData = JSON.parse(localStorage.getItem('torque_records') || '[]');
+            const localIndex = localData.findIndex(r => r.id === updatedRecord.id);
+            if (localIndex !== -1) {
+                localData[localIndex] = updatedRecord;
+                localStorage.setItem('torque_records', JSON.stringify(localData));
+            } else {
+                // Cloud update logic (visual only for now)
+                const memIndex = window.state.historyData.findIndex(r => r.id === updatedRecord.id);
+                if(memIndex !== -1) window.state.historyData[memIndex] = updatedRecord;
+                if(!String(updatedRecord.id).startsWith('local-')) console.warn("Cloud record update is visual only until synced.");
+            }
+        }
+
+        window.viewHistoryDetail = (id) => {
+            const record = window.state.historyData.find(r => r.id === id);
+            if(!record) return;
+            const modal = document.getElementById('detail-modal');
+            const content = document.getElementById('modal-content');
+            
+            const rows = record.readings.map((r, i) => {
+                const isEditing = window.state.editingRow && window.state.editingRow.id === id && window.state.editingRow.index === i;
+                const statusColor = r.status === 'pass' ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50';
+
+                if (isEditing) {
+                    return `
+                        <tr class="border-b border-blue-100 bg-blue-50">
+                            <td class="p-3"><input type="text" id="edit-station-${i}" value="${escapeHtml(r.station)}" class="w-full p-1 border rounded text-xs"></td>
+                            <td class="p-3"><input type="text" id="edit-part-${i}" value="${escapeHtml(r.part)}" class="w-full p-1 border rounded text-xs"></td>
+                            <td class="p-3 text-center text-xs font-mono text-slate-500">${r.standardMin}-${r.standardMax}</td>
+                            <td class="p-3 text-center"><input type="number" step="0.01" id="edit-actual-${i}" value="${r.actual}" class="w-20 p-1 border rounded text-center font-bold text-slate-800"></td>
+                            <td class="p-3 text-center text-xs">Editing...</td>
+                            <td class="p-3 text-center">
+                                <div class="flex items-center justify-center gap-2">
+                                    <button onclick="saveDetailRow('${id}', ${i})" class="text-green-600 hover:bg-green-200 p-1.5 rounded transition"><i data-lucide="save" class="w-4 h-4"></i></button>
+                                    <button onclick="cancelDetailEdit('${id}')" class="text-slate-500 hover:bg-slate-200 p-1.5 rounded transition"><i data-lucide="x" class="w-4 h-4"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    return `
+                        <tr class="border-b border-slate-100 hover:bg-slate-50 transition group">
+                            <td class="p-3">${escapeHtml(r.station)}</td>
+                            <td class="p-3 text-xs text-slate-600">${escapeHtml(r.part)}</td>
+                            <td class="p-3 text-center text-xs font-mono text-slate-500">${r.standardMin}-${r.standardMax}</td>
+                            <td class="p-3 text-center font-bold">${r.actual}</td>
+                            <td class="p-3 text-center"><span class="px-2 py-1 rounded text-xs font-bold ${statusColor}">${r.status.toUpperCase()}</span></td>
+                            <td class="p-3 text-center">
+                                 <div class="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onclick="editDetailRow('${id}', ${i})" class="text-blue-500 hover:bg-blue-100 p-1.5 rounded"><i data-lucide="pencil" class="w-3 h-3"></i></button>
+                                    <button onclick="deleteDetailRow('${id}', ${i})" class="text-red-500 hover:bg-red-100 p-1.5 rounded"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }
+            }).join('');
+
+            content.innerHTML = `
+                <div class="mb-6">
+                    <h4 class="font-bold text-lg text-slate-800 mb-1">${escapeHtml(record.mainModel)} <span class="text-slate-400 text-sm">/ ${escapeHtml(record.subModel)}</span></h4>
+                    <div class="flex flex-wrap gap-4 text-sm text-slate-500 mt-2">
+                        <div class="flex items-center gap-1"><i data-lucide="calendar" class="w-4 h-4"></i> ${record.dateString}</div>
+                        <div class="flex items-center gap-1"><i data-lucide="layers" class="w-4 h-4"></i> Line ${record.line}</div>
+                        <div class="flex items-center gap-1"><i data-lucide="user" class="w-4 h-4"></i> ${escapeHtml(record.leaderName)}</div>
+                    </div>
+                </div>
+                <div class="border rounded-lg overflow-hidden">
+                    <table class="w-full text-sm text-left"><thead class="bg-slate-50 text-xs uppercase text-slate-500"><tr><th class="p-3">Station</th><th class="p-3">Part</th><th class="p-3 text-center">Std Range</th><th class="p-3 text-center">Actual</th><th class="p-3 text-center">Result</th><th class="p-3 text-center w-20">Act</th></tr></thead><tbody>${rows}</tbody></table>
+                </div>
+                <div class="mt-2 text-xs text-slate-400 text-right italic">* Hover row to see actions</div>
+            `;
+            modal.classList.remove('hidden'); requestAnimationFrame(() => { modal.classList.remove('opacity-0'); modal.children[0].classList.remove('scale-95'); });
+            lucide.createIcons();
+        };
+        
+        window.closeModal = () => { const modal = document.getElementById('detail-modal'); modal.classList.add('opacity-0'); modal.children[0].classList.add('scale-95'); setTimeout(() => modal.classList.add('hidden'), 300); };
+        window.updateStatusUI = (on) => { document.getElementById('connection-status').textContent = on ? "Connected (Sheet)" : "Offline (Local)"; document.getElementById('connection-status').className = `px-2 py-0.5 rounded text-[10px] font-bold text-white ${on ? 'bg-emerald-500' : 'bg-amber-500'}`; if(on) document.getElementById('btn-sync').classList.remove('hidden'); else document.getElementById('btn-sync').classList.add('hidden'); };
+        window.updateFormData = (k, v) => window.state.formData[k] = v;
+        window.SyncManager = SyncManager; window.AuthManager = AuthManager; window.ConfigService = ConfigService; window.Service = Service;
+        
+        // --- INITIALIZATION ---
+        const storedUser = localStorage.getItem('currentUser');
+        if (storedUser) {
+            AuthManager.setSession(JSON.parse(storedUser));
+        } else {
+            Service.init(); 
+            lucide.createIcons();
+        }
+
+        window.onerror = function(msg, url, line) { console.error("Script Error:", msg, line); return false; };
+        // --- UNDO DELETE LOGIC ---
+        window.deleteTimers = {}; // ตัวแปรเก็บ Timer ของแต่ละ ID
+
+        window.handleDeleteWithUndo = (id) => {
+            // 1. ถามยืนยัน (Confirmation)
+            if (!confirm("Are you sure you want to delete this record?")) {
+                return;
+            }
+
+            // 2. ซ่อนแถวทันที (Soft Delete)
+            const row = document.getElementById(`hist-row-${id}`);
+            if (row) {
+                row.style.transition = "opacity 0.3s";
+                row.style.opacity = "0";
+                setTimeout(() => row.style.display = "none", 300);
+            }
+
+            // 3. แสดง Toast พร้อมปุ่ม Undo
+            showUndoToast(id);
+
+            // 4. ตั้งเวลา 5 วินาที ถ้าไม่มีการ Undo ให้ลบจริง
+            window.deleteTimers[id] = setTimeout(() => {
+                // ลบจริงเมื่อหมดเวลา
+                Service.deleteRecord(id); 
+                delete window.deleteTimers[id];
+                // ซ่อน Toast Undo ถ้ามันยังค้างอยู่
+                const undoToast = document.getElementById(`toast-undo-${id}`);
+                if (undoToast) undoToast.remove();
+            }, 5000); 
+        };
+
+        window.cancelDelete = (id) => {
+            // 1. หยุด Timer การลบ
+            if (window.deleteTimers[id]) {
+                clearTimeout(window.deleteTimers[id]);
+                delete window.deleteTimers[id];
+            }
+
+            // 2. เอาแถวกลับมา (Restore Row)
+            const row = document.getElementById(`hist-row-${id}`);
+            if (row) {
+                row.style.display = "";
+                // เล็กน้อย: ใช้ setTimeout เพื่อให้ transition opacity ทำงาน
+                requestAnimationFrame(() => {
+                    row.style.opacity = "1";
+                    row.classList.add("bg-green-50"); // ไฮไลท์สีเขียวอ่อนๆ ว่ากลับมาแล้ว
+                    setTimeout(() => row.classList.remove("bg-green-50"), 1000);
+                });
+            }
+
+            // 3. ปิด Toast Undo
+            const undoToast = document.getElementById(`toast-undo-${id}`);
+            if (undoToast) undoToast.remove();
+
+            window.showToast("Restored record!", "success");
+        };
+
+        // ฟังก์ชันสร้าง Toast แบบพิเศษที่มีปุ่มกดได้
+        window.showUndoToast = (id) => {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.id = `toast-undo-${id}`;
+            toast.className = `toast toast-undo show flex items-center gap-4 justify-between`;
+            
+            // HTML ของ Toast: ข้อความ + ปุ่ม Undo
+            toast.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <i data-lucide="trash" class="w-4 h-4 text-red-300"></i>
+                    <span>Deleted.</span>
+                </div>
+                <button onclick="cancelDelete('${id}')" class="px-3 py-1 bg-white text-slate-800 text-xs font-bold rounded hover:bg-slate-200 transition active:scale-95 flex items-center gap-1">
+                    <i data-lucide="undo-2" class="w-3 h-3"></i> Undo
+                </button>
+            `;
+            
+            container.appendChild(toast);
+            lucide.createIcons();
+
+            // ลบ Toast ทิ้งเมื่อเวลาผ่านไป (เพื่อให้สอดคล้องกับการลบจริง)
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.classList.remove('show');
+                    setTimeout(() => toast.remove(), 300);
+                }
+            }, 5000);
+        };
+        // ==========================================
+        //  USER MANAGEMENT (QUICK ADD & DELETE)
+        // ==========================================
+
+        // --- 1. ส่วนเพิ่มคนใหม่ (Quick Add) ---
+        // ==========================================
+        //  PERSONNEL MANAGEMENT (LEADER/QC ONLY)
+        //  * แยกจาก User Login โดยสิ้นเชิง *
+        // ==========================================
+
+        // --- 1. ส่วนเพิ่มพนักงานหน้างาน (Quick Add) ---
+        window.openQuickAddUser = (roleContext) => {
+            const modal = document.getElementById('quick-add-modal');
+            const label = document.getElementById('quick-add-role-label');
+            const note = document.getElementById('quick-add-note'); // *เพิ่มใหม่
+
+            // Reset ค่าใน Modal
+            document.getElementById('quick-id').value = '';
+            document.getElementById('quick-name').value = '';
+            label.textContent = roleContext; 
+            
+            // ซ่อนข้อความเรื่อง Password เพราะ Personnel ไม่ต้องใช้ Pass
+            if(note) note.style.display = 'none';
+            
+            // แสดง Modal
+            modal.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                modal.classList.remove('opacity-0');
+                modal.children[0].classList.remove('scale-95');
+            });
+            document.getElementById('quick-id').focus();
+        };
+
+        window.closeQuickAddModal = () => {
+            const modal = document.getElementById('quick-add-modal');
+            modal.classList.add('opacity-0');
+            modal.children[0].classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        };
+
+        window.saveQuickUser = async () => {
+            const id = document.getElementById('quick-id').value.trim();
+            const name = document.getElementById('quick-name').value.trim();
+            const roleLabel = document.getElementById('quick-add-role-label').textContent; // 'Leader' or 'QC'
+
+            if (!id || !name) { alert("Please enter both ID and Name."); return; }
+
+            // ตรวจสอบตัวแปร personnel (ถ้ายังไม่มีให้สร้าง array ว่าง)
+            if (!window.state.config.personnel) window.state.config.personnel = [];
+
+            // เช็ค ID ซ้ำใน Personnel List
+            if (window.state.config.personnel.some(p => p.id === id)) {
+                alert("This Employee ID already exists in personnel list."); return;
+            }
+
+            // สร้าง Personnel ใหม่ (ไม่มี Password)
+            const newPerson = { id: id, name: name, role: roleLabel, isActive: true };
+            window.state.config.personnel.push(newPerson);
+            
+            // บันทึกและรีเฟรช
+            localStorage.setItem('cfg_personnel', JSON.stringify(window.state.config.personnel));
+            
+            // Sync Dropdown เฉพาะส่วน Personnel
+            window.syncPersonnelDropdowns();
+
+            // Save to Cloud
+            Service.saveConfig({ 
+                models: window.state.config.models, 
+                standards: window.state.config.standards, 
+                users: window.state.config.users,       // Login Users (คงเดิม)
+                personnel: window.state.config.personnel // Personnel (ใหม่)
+            });
+
+            window.closeQuickAddModal();
+            window.showToast(`Added ${name} to Personnel list!`, 'success');
+
+            // ใส่ชื่อลงในช่อง Input ทันที
+            if (roleLabel === 'Leader') { document.getElementById('input-leader').value = name; window.updateFormData('leaderName', name); }
+            else if (roleLabel === 'QC') { document.getElementById('input-qc').value = name; window.updateFormData('qcName', name); }
+        };
+
+        // --- 2. ส่วนลบพนักงานหน้างาน (Quick Delete) ---
+        window.quickDeleteUser = async (roleContext) => {
+            let inputId = (roleContext === 'Leader') ? 'input-leader' : 'input-qc';
+            const inputValue = document.getElementById(inputId).value.trim();
+            
+            if (!inputValue) { window.showToast("Please select a person to delete.", "error"); return; }
+
+            if (!window.state.config.personnel) window.state.config.personnel = [];
+
+            // หา Index จาก Personnel List
+            const pIndex = window.state.config.personnel.findIndex(p => p.name.toLowerCase() === inputValue.toLowerCase());
+            
+            if (pIndex === -1) { window.showToast(`Person "${inputValue}" not found in list.`, "error"); return; }
+            const targetPerson = window.state.config.personnel[pIndex];
+
+            // ยืนยันการลบ
+            if (!confirm(`⚠️ Remove "${targetPerson.name}" from Personnel list?`)) return;
+
+            // ลบออกจาก Personnel
+            window.state.config.personnel.splice(pIndex, 1);
+            localStorage.setItem('cfg_personnel', JSON.stringify(window.state.config.personnel));
+            
+            // Sync Dropdown
+            window.syncPersonnelDropdowns();
+            
+            // เคลียร์ช่อง Input
+            document.getElementById(inputId).value = '';
+            if (roleContext === 'Leader') window.updateFormData('leaderName', '');
+            if (roleContext === 'QC') window.updateFormData('qcName', '');
+
+            // บันทึกลง Cloud
+            Service.saveConfig({ 
+                models: window.state.config.models, 
+                standards: window.state.config.standards, 
+                users: window.state.config.users,
+                personnel: window.state.config.personnel 
+            });
+
+            window.showToast(`Removed "${targetPerson.name}".`, "undo");
+        };
+
+        // --- Helper: Sync Dropdown สำหรับ Personnel โดยเฉพาะ ---
+        window.syncPersonnelDropdowns = () => {
+            // อ่านจาก State หรือ LocalStorage
+            const list = window.state.config.personnel || [];
+            // กรองเฉพาะที่ Active (ถ้ามี field active)
+            const activeList = list.filter(p => p.isActive !== false);
+            
+            const options = activeList.map(p => `<option value="${escapeHtml(p.name)}">`).join('');
+            const dataListEl = document.getElementById('list-users-active');
+            if(dataListEl) dataListEl.innerHTML = options;
+        };
+    </script>
+</body>
+</html>
+
+
+
+
+
+
 
