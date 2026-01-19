@@ -1966,9 +1966,103 @@
                 }
             }, 5000);
         };
+        // ==========================================
+        //  USER MANAGEMENT (QUICK ADD & DELETE)
+        // ==========================================
+
+        // --- 1. ส่วนเพิ่มคนใหม่ (Quick Add) ---
+        window.openQuickAddUser = (roleContext) => {
+            const modal = document.getElementById('quick-add-modal');
+            const label = document.getElementById('quick-add-role-label');
+            
+            // Reset ค่าใน Modal
+            document.getElementById('quick-id').value = '';
+            document.getElementById('quick-name').value = '';
+            label.textContent = roleContext; // บอกว่ากำลังเพิ่ม Leader หรือ QC
+            
+            // แสดง Modal
+            modal.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                modal.classList.remove('opacity-0');
+                modal.children[0].classList.remove('scale-95');
+            });
+            document.getElementById('quick-id').focus();
+        };
+
+        window.closeQuickAddModal = () => {
+            const modal = document.getElementById('quick-add-modal');
+            modal.classList.add('opacity-0');
+            modal.children[0].classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        };
+
+        window.saveQuickUser = async () => {
+            const id = document.getElementById('quick-id').value.trim();
+            const name = document.getElementById('quick-name').value.trim();
+
+            if (!id || !name) { alert("Please enter both ID and Name."); return; }
+
+            // เช็ค ID ซ้ำ
+            if (window.state.config.users.some(u => u.id === id)) {
+                alert("This ID already exists."); return;
+            }
+
+            // สร้าง User ใหม่
+            const newUser = { id: id, name: name, password: '1234', role: 'user', isActive: true };
+            window.state.config.users.push(newUser);
+            
+            // บันทึกและรีเฟรช
+            localStorage.setItem('cfg_users', JSON.stringify(window.state.config.users));
+            AuthManager.syncUsersList();
+            Service.saveConfig({ models: window.state.config.models, standards: window.state.config.standards, users: window.state.config.users });
+
+            window.closeQuickAddModal();
+            window.showToast(`Added ${name} successfully!`, 'success');
+
+            // ใส่ชื่อลงในช่องทันที
+            const label = document.getElementById('quick-add-role-label').textContent;
+            if (label === 'Leader') { document.getElementById('input-leader').value = name; window.updateFormData('leaderName', name); }
+            else if (label === 'QC') { document.getElementById('input-qc').value = name; window.updateFormData('qcName', name); }
+        };
+
+        // --- 2. ส่วนลบคน (Quick Delete) ---
+        window.quickDeleteUser = async (roleContext) => {
+            let inputId = (roleContext === 'Leader') ? 'input-leader' : 'input-qc';
+            const inputValue = document.getElementById(inputId).value.trim();
+            
+            if (!inputValue) { window.showToast("Please select a user to delete.", "error"); return; }
+
+            // หา User จากชื่อ
+            const userIndex = window.state.config.users.findIndex(u => u.name.toLowerCase() === inputValue.toLowerCase());
+            
+            if (userIndex === -1) { window.showToast(`User not found.`, "error"); return; }
+            const targetUser = window.state.config.users[userIndex];
+
+            // ห้ามลบ Admin
+            if (targetUser.role === 'admin' || targetUser.id === 'admin') { alert("Cannot delete Admin."); return; }
+
+            // ยืนยันการลบ
+            if (!confirm(`⚠️ Permanently delete "${targetUser.name}"?`)) return;
+
+            // ลบออกจากระบบ
+            window.state.config.users.splice(userIndex, 1);
+            localStorage.setItem('cfg_users', JSON.stringify(window.state.config.users));
+            AuthManager.syncUsersList();
+            
+            // เคลียร์ช่อง Input
+            document.getElementById(inputId).value = '';
+            if (roleContext === 'Leader') window.updateFormData('leaderName', '');
+            if (roleContext === 'QC') window.updateFormData('qcName', '');
+
+            // บันทึกลง Cloud
+            Service.saveConfig({ models: window.state.config.models, standards: window.state.config.standards, users: window.state.config.users });
+
+            window.showToast(`Deleted "${targetUser.name}".`, "undo");
+        };
     </script>
 </body>
 </html>
+
 
 
 
