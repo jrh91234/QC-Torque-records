@@ -610,19 +610,7 @@
 
     <div id="toast-container" class="toast-container"></div>
 
-    <div id="detail-modal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-50 p-4 backdrop-blur-sm transition-opacity opacity-0" style="z-index: 9999;">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden transform scale-95 transition-all duration-300">
-            <div class="p-4 bg-slate-800 text-white flex justify-between items-center shadow-md shrink-0">
-                <h3 class="font-bold flex items-center gap-2 text-lg"><i data-lucide="file-search" class="w-5 h-5 text-blue-400"></i> Detail</h3>
-                <button onclick="closeModal()" class="hover:bg-slate-700 p-2 rounded-full transition text-slate-400 hover:text-white touch-target"><i data-lucide="x" class="w-5 h-5"></i></button>
-            </div>
-            <div class="p-6 overflow-y-auto modal-scroll bg-slate-50" id="modal-content"></div>
-            <div class="p-4 border-t border-slate-200 bg-white flex justify-end shrink-0">
-                <button onclick="closeModal()" class="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold transition w-full md:w-auto touch-target">Close</button>
-            </div>
-        </div>
-    </div>
-<div id="quick-add-modal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[10000] p-4 backdrop-blur-sm transition-opacity opacity-0">
+   <div id="quick-add-modal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[10000] p-4 backdrop-blur-sm transition-opacity opacity-0">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm transform scale-95 transition-all duration-300 p-6">
             <div class="text-center mb-6">
                 <div class="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -641,7 +629,8 @@
                     <label class="block text-xs font-bold text-slate-500 mb-1">FULL NAME (ชื่อ-สกุล)</label>
                     <input type="text" id="quick-name" class="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" placeholder="e.g. Somchai Jai-dee">
                 </div>
-                <div class="text-xs text-slate-400 bg-slate-50 p-2 rounded">
+                
+                <div id="quick-add-note" class="text-xs text-slate-400 bg-slate-50 p-2 rounded">
                     * Default Password: <b>1234</b> (Change in Settings)
                 </div>
             </div>
@@ -691,33 +680,36 @@
                 window.updateStatusUI(true);
             },
 
-            // --- HYBRID LOGIN ADDITION ---
+           // --- แก้ไขใน object Service ---
+
             async syncUsersOnly() {
                 try {
                     const response = await fetch(`${GAS_API_URL}?action=read_config`);
                     const data = await response.json();
                     
-                    if (data.users && Array.isArray(data.users)) {
+                    // Sync Login Users
+                    if (data.users) {
                         window.state.config.users = data.users;
                         localStorage.setItem('cfg_users', JSON.stringify(data.users));
-                        
-                        if(data.models) {
-                            window.state.config.models = data.models;
-                            localStorage.setItem('cfg_models', JSON.stringify(data.models));
-                        }
-                        if(data.standards) {
-                            window.state.config.standards = data.standards;
-                            localStorage.setItem('cfg_standards', JSON.stringify(data.standards));
-                        }
-                        console.log("Cloud Config & Users Synced Successfully");
-                        return true;
                     }
+
+                    // Sync Personnel (Leader/QC) -- เพิ่มส่วนนี้
+                    if (data.personnel) {
+                        window.state.config.personnel = data.personnel;
+                        localStorage.setItem('cfg_personnel', JSON.stringify(data.personnel));
+                    }
+                    
+                    // Sync Other Configs
+                    if(data.models) { window.state.config.models = data.models; localStorage.setItem('cfg_models', JSON.stringify(data.models)); }
+                    if(data.standards) { window.state.config.standards = data.standards; localStorage.setItem('cfg_standards', JSON.stringify(data.standards)); }
+                    
+                    console.log("Cloud Config Synced");
+                    return true;
                 } catch (e) {
-                    console.warn("Sync failed (Offline mode activated):", e);
+                    console.warn("Sync failed (Offline)", e);
                     throw e;
                 }
             },
-            // -----------------------------
 
             async loadConfig() {
                 try {
@@ -727,16 +719,18 @@
                     if (data.models && data.standards) {
                         window.state.config.models = data.models;
                         window.state.config.standards = data.standards;
-                        // Load users too
                         if (data.users) window.state.config.users = data.users;
-                        
-                        const allParts = data.standards.map(s => s.part);
-                        window.state.config.parts = [...new Set(allParts)].sort();
-                        
+                        // เพิ่ม Personnel
+                        if (data.personnel) window.state.config.personnel = data.personnel;
+                        else window.state.config.personnel = []; // ถ้าไม่มีให้เป็น array ว่าง
+
                         // Save local backup
                         ConfigService.saveLocalOnly();
                         
                         window.populateDropdowns();
+                        // เรียกฟังก์ชัน Sync Dropdown ของ Personnel
+                        window.syncPersonnelDropdowns(); 
+                        
                         window.showToast("Configuration Synced!", "success");
                     }
                 } catch (e) {
@@ -1138,23 +1132,33 @@
         
         // --- CONFIG MANAGER (UPDATED FOR CLOUD) ---
         const ConfigService = {
+           // ใน ConfigService
             loadLocal() {
+                // ... (models/standards เดิม) ...
                 let models = JSON.parse(localStorage.getItem('cfg_models') || '[]');
                 if(models.length === 0) { models = [{main: "CU Classic", sub: "S9HCL110"}]; }
                 window.state.config.models = models;
 
                 let standards = JSON.parse(localStorage.getItem('cfg_standards') || '[]');
                 if(standards.length === 0) {
-                    standards = [{modelGroup:"CU Classic", modelByTorq:"CU Classic", subModel: "S9HCL110", line: "5", station: "6", part: "75504066AA", desc: "Cover screw", minNm: 2.6, maxNm: 3.05}];
+                     standards = [{modelGroup:"CU Classic", modelByTorq:"CU Classic", subModel: "S9HCL110", line: "5", station: "6", part: "75504066AA", desc: "Cover screw", minNm: 2.6, maxNm: 3.05}];
                 }
                 window.state.config.standards = standards;
+
+                // Load Personnel Local
+                let personnel = JSON.parse(localStorage.getItem('cfg_personnel') || '[]');
+                window.state.config.personnel = personnel;
+
                 window.populateDropdowns();
+                window.syncPersonnelDropdowns(); // เรียกตัวนี้ด้วย
             },
             
             saveLocalOnly() {
                 localStorage.setItem('cfg_models', JSON.stringify(window.state.config.models));
                 localStorage.setItem('cfg_standards', JSON.stringify(window.state.config.standards));
                 localStorage.setItem('cfg_users', JSON.stringify(window.state.config.users));
+                // Save Personnel
+                localStorage.setItem('cfg_personnel', JSON.stringify(window.state.config.personnel));
             },
 
             save() {
@@ -2000,14 +2004,24 @@
         // ==========================================
 
         // --- 1. ส่วนเพิ่มคนใหม่ (Quick Add) ---
+        // ==========================================
+        //  PERSONNEL MANAGEMENT (LEADER/QC ONLY)
+        //  * แยกจาก User Login โดยสิ้นเชิง *
+        // ==========================================
+
+        // --- 1. ส่วนเพิ่มพนักงานหน้างาน (Quick Add) ---
         window.openQuickAddUser = (roleContext) => {
             const modal = document.getElementById('quick-add-modal');
             const label = document.getElementById('quick-add-role-label');
-            
+            const note = document.getElementById('quick-add-note'); // *เพิ่มใหม่
+
             // Reset ค่าใน Modal
             document.getElementById('quick-id').value = '';
             document.getElementById('quick-name').value = '';
-            label.textContent = roleContext; // บอกว่ากำลังเพิ่ม Leader หรือ QC
+            label.textContent = roleContext; 
+            
+            // ซ่อนข้อความเรื่อง Password เพราะ Personnel ไม่ต้องใช้ Pass
+            if(note) note.style.display = 'none';
             
             // แสดง Modal
             modal.classList.remove('hidden');
@@ -2028,55 +2042,68 @@
         window.saveQuickUser = async () => {
             const id = document.getElementById('quick-id').value.trim();
             const name = document.getElementById('quick-name').value.trim();
+            const roleLabel = document.getElementById('quick-add-role-label').textContent; // 'Leader' or 'QC'
 
             if (!id || !name) { alert("Please enter both ID and Name."); return; }
 
-            // เช็ค ID ซ้ำ
-            if (window.state.config.users.some(u => u.id === id)) {
-                alert("This ID already exists."); return;
+            // ตรวจสอบตัวแปร personnel (ถ้ายังไม่มีให้สร้าง array ว่าง)
+            if (!window.state.config.personnel) window.state.config.personnel = [];
+
+            // เช็ค ID ซ้ำใน Personnel List
+            if (window.state.config.personnel.some(p => p.id === id)) {
+                alert("This Employee ID already exists in personnel list."); return;
             }
 
-            // สร้าง User ใหม่
-            const newUser = { id: id, name: name, password: '1234', role: 'user', isActive: true };
-            window.state.config.users.push(newUser);
+            // สร้าง Personnel ใหม่ (ไม่มี Password)
+            const newPerson = { id: id, name: name, role: roleLabel, isActive: true };
+            window.state.config.personnel.push(newPerson);
             
             // บันทึกและรีเฟรช
-            localStorage.setItem('cfg_users', JSON.stringify(window.state.config.users));
-            AuthManager.syncUsersList();
-            Service.saveConfig({ models: window.state.config.models, standards: window.state.config.standards, users: window.state.config.users });
+            localStorage.setItem('cfg_personnel', JSON.stringify(window.state.config.personnel));
+            
+            // Sync Dropdown เฉพาะส่วน Personnel
+            window.syncPersonnelDropdowns();
+
+            // Save to Cloud
+            Service.saveConfig({ 
+                models: window.state.config.models, 
+                standards: window.state.config.standards, 
+                users: window.state.config.users,       // Login Users (คงเดิม)
+                personnel: window.state.config.personnel // Personnel (ใหม่)
+            });
 
             window.closeQuickAddModal();
-            window.showToast(`Added ${name} successfully!`, 'success');
+            window.showToast(`Added ${name} to Personnel list!`, 'success');
 
-            // ใส่ชื่อลงในช่องทันที
-            const label = document.getElementById('quick-add-role-label').textContent;
-            if (label === 'Leader') { document.getElementById('input-leader').value = name; window.updateFormData('leaderName', name); }
-            else if (label === 'QC') { document.getElementById('input-qc').value = name; window.updateFormData('qcName', name); }
+            // ใส่ชื่อลงในช่อง Input ทันที
+            if (roleLabel === 'Leader') { document.getElementById('input-leader').value = name; window.updateFormData('leaderName', name); }
+            else if (roleLabel === 'QC') { document.getElementById('input-qc').value = name; window.updateFormData('qcName', name); }
         };
 
-        // --- 2. ส่วนลบคน (Quick Delete) ---
+        // --- 2. ส่วนลบพนักงานหน้างาน (Quick Delete) ---
         window.quickDeleteUser = async (roleContext) => {
             let inputId = (roleContext === 'Leader') ? 'input-leader' : 'input-qc';
             const inputValue = document.getElementById(inputId).value.trim();
             
-            if (!inputValue) { window.showToast("Please select a user to delete.", "error"); return; }
+            if (!inputValue) { window.showToast("Please select a person to delete.", "error"); return; }
 
-            // หา User จากชื่อ
-            const userIndex = window.state.config.users.findIndex(u => u.name.toLowerCase() === inputValue.toLowerCase());
+            if (!window.state.config.personnel) window.state.config.personnel = [];
+
+            // หา Index จาก Personnel List
+            const pIndex = window.state.config.personnel.findIndex(p => p.name.toLowerCase() === inputValue.toLowerCase());
             
-            if (userIndex === -1) { window.showToast(`User not found.`, "error"); return; }
-            const targetUser = window.state.config.users[userIndex];
-
-            // ห้ามลบ Admin
-            if (targetUser.role === 'admin' || targetUser.id === 'admin') { alert("Cannot delete Admin."); return; }
+            if (pIndex === -1) { window.showToast(`Person "${inputValue}" not found in list.`, "error"); return; }
+            const targetPerson = window.state.config.personnel[pIndex];
 
             // ยืนยันการลบ
-            if (!confirm(`⚠️ Permanently delete "${targetUser.name}"?`)) return;
+            if (!confirm(`⚠️ Remove "${targetPerson.name}" from Personnel list?`)) return;
 
-            // ลบออกจากระบบ
-            window.state.config.users.splice(userIndex, 1);
-            localStorage.setItem('cfg_users', JSON.stringify(window.state.config.users));
-            AuthManager.syncUsersList();
+            // ลบออกจาก Personnel
+            window.state.config.personnel.splice(pIndex, 1);
+            localStorage.setItem('cfg_personnel', JSON.stringify(window.state.config.personnel));
+            
+            // Sync Dropdown
+            window.syncPersonnelDropdowns();
             
             // เคลียร์ช่อง Input
             document.getElementById(inputId).value = '';
@@ -2084,13 +2111,31 @@
             if (roleContext === 'QC') window.updateFormData('qcName', '');
 
             // บันทึกลง Cloud
-            Service.saveConfig({ models: window.state.config.models, standards: window.state.config.standards, users: window.state.config.users });
+            Service.saveConfig({ 
+                models: window.state.config.models, 
+                standards: window.state.config.standards, 
+                users: window.state.config.users,
+                personnel: window.state.config.personnel 
+            });
 
-            window.showToast(`Deleted "${targetUser.name}".`, "undo");
+            window.showToast(`Removed "${targetPerson.name}".`, "undo");
+        };
+
+        // --- Helper: Sync Dropdown สำหรับ Personnel โดยเฉพาะ ---
+        window.syncPersonnelDropdowns = () => {
+            // อ่านจาก State หรือ LocalStorage
+            const list = window.state.config.personnel || [];
+            // กรองเฉพาะที่ Active (ถ้ามี field active)
+            const activeList = list.filter(p => p.isActive !== false);
+            
+            const options = activeList.map(p => `<option value="${escapeHtml(p.name)}">`).join('');
+            const dataListEl = document.getElementById('list-users-active');
+            if(dataListEl) dataListEl.innerHTML = options;
         };
     </script>
 </body>
 </html>
+
 
 
 
