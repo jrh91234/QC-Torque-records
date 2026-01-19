@@ -1300,70 +1300,78 @@
         }
 
        window.renderHistoryTable = () => {
-            // 1. ดึงข้อมูล User ปัจจุบันและวันที่ปัจจุบัน
+            // 1. ดึงข้อมูล User ที่ Login อยู่ปัจจุบัน
             const currentUser = window.state.user;
-            const isAdmin = currentUser && currentUser.role === 'admin';
             
-            // สร้าง Object วันที่วันนี้ (Reset เวลาเป็น 00:00:00 เพื่อเทียบแค่วัน)
+            // ถ้าไม่มี User login (หลุด) ให้ถือว่าไม่มีสิทธิ์ลบ
+            if (!currentUser) return; 
+
+            const isAdmin = currentUser.role === 'admin';
+            
+            // เตรียมชื่อ User ปัจจุบัน (แปลงเป็นตัวเล็กและตัดช่องว่าง เพื่อความชัวร์ในการเทียบ)
+            const currentName = (currentUser.name || '').trim().toLowerCase();
+            
+            // เตรียมวันที่ปัจจุบัน (เพื่อใช้เช็คเงื่อนไขลบภายในวัน)
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
-            // ฟังก์ชันช่วยแปลงวันที่จาก String (รองรับปี พ.ศ.)
+            // Helper แปลงวันที่
             const parseDate = (str) => {
                 if (!str) return new Date(0);
-                let parts = str.split(/[\s,/]+/); // แยกด้วย space, comma, หรือ slash
+                let parts = str.split(/[\s,/]+/);
                 if (parts.length >= 3) {
                     const d = parseInt(parts[0], 10);
                     const m = parseInt(parts[1], 10) - 1;
                     let y = parseInt(parts[2], 10);
-                    // ถ้าปีมากกว่า 2400 ให้สันนิษฐานว่าเป็น พ.ศ. ให้ลบ 543
                     return new Date(y > 2400 ? y - 543 : y, m, d);
                 }
                 return new Date(str);
             };
 
-            // 2. จัดการปุ่ม Clear History (ปุ่มล้างทั้งหมด)
-            // ให้เฉพาะ Admin เท่านั้นที่เห็นปุ่มนี้ เพื่อความปลอดภัยสูงสุด
+            // จัดการปุ่ม Clear All (ให้เห็นเฉพาะ Admin)
             const btnClear = document.querySelector('button[onclick="clearHistory()"]');
             if (btnClear) {
-                if (isAdmin) btnClear.classList.remove('hidden');
-                else btnClear.classList.add('hidden');
+                btnClear.classList.toggle('hidden', !isAdmin);
             }
 
-            // 3. เตรียมข้อมูลและ Sort
+            // ดึงข้อมูลและ Sort
             let data = getFilteredData(document.getElementById('hist-date-start')?.value, document.getElementById('hist-date-end')?.value);
             if (window.state.sortHistory.col) data = window.sortArray(data, window.state.sortHistory.col, window.state.sortHistory.dir);
 
             const b = document.getElementById('history-table-body');
             
-            // 4. Render ตาราง
+            // เริ่มวาดตาราง
             b.innerHTML = data.length === 0 
                 ? '<tr><td colspan="7" class="p-8 text-center text-slate-400 italic">No history records found.</td></tr>' 
                 : data.map(r => {
-                    // --- SECURITY LOGIC START ---
-                    // แปลงวันที่ของ Record เพื่อตรวจสอบ
+                    // --- 🔒 ส่วนตรวจสอบสิทธิ์ (SECURITY CHECK) 🔒 ---
+                    
+                    // 1. เช็คความเป็นเจ้าของ (Ownership Check)
+                    // เทียบชื่อคน Login กับชื่อใน Record (ทั้ง Leader และ QC)
+                    const recordLeader = (r.leaderName || '').trim().toLowerCase();
+                    const recordQC = (r.qcName || '').trim().toLowerCase();
+                    
+                    // เป็นเจ้าของ ถ้าชื่อตรงกับ Leader หรือ QC คนใดคนหนึ่ง
+                    const isOwner = (currentName === recordLeader) || (currentName === recordQC);
+
+                    // 2. เช็คเวลา (Time Check) - ต้องเป็นรายการของวันนี้เท่านั้น
                     const recDate = parseDate(r.dateString);
                     recDate.setHours(0, 0, 0, 0);
                     const isToday = recDate.getTime() === today.getTime();
 
-                    // เช็คว่าเป็นเจ้าของ Record หรือไม่ (เทียบชื่อ User กับ QC หรือ Leader)
-                    // ใช้ toLowerCase() เพื่อป้องกันกรณีพิมพ์ตัวเล็กใหญ่ไม่เหมือนกัน
-                    const currentName = (currentUser?.name || '').toLowerCase();
-                    const isOwner = (r.qcName || '').toLowerCase() === currentName || 
-                                    (r.leaderName || '').toLowerCase() === currentName;
-
-                    // เงื่อนไขการอนุญาตให้ลบ
+                    // สรุปสิทธิ์: ลบได้ถ้าเป็น Admin หรือ (เป็นเจ้าของ และ เป็นรายการวันนี้)
                     const canDelete = isAdmin || (isOwner && isToday);
 
-                    // สร้างปุ่มตามสิทธิ์
+                    // ----------------------------------------------------
+
+                    // สร้างปุ่มลบ หรือ ปุ่มแม่กุญแจ ตามสิทธิ์ที่ได้
                     const deleteBtn = canDelete
-                        ? `<button onclick="Service.deleteRecord('${r.id}')" class="p-2 hover:bg-red-50 rounded transition touch-target group" title="Delete Record">
+                        ? `<button onclick="Service.deleteRecord('${r.id}')" class="p-2 hover:bg-red-50 rounded transition touch-target group" title="ลบรายการนี้">
                              <i data-lucide="trash-2" class="w-4 h-4 text-red-400 group-hover:text-red-600"></i>
                            </button>`
-                        : `<span class="p-2 inline-block text-slate-300 cursor-not-allowed" title="Permission Denied (Only Admin or Owner today)">
+                        : `<span class="p-2 inline-block text-slate-300 cursor-not-allowed" title="ไม่มีสิทธิ์ลบ (ไม่ใช่เจ้าของ หรือ ข้ามวันแล้ว)">
                              <i data-lucide="lock" class="w-3 h-3"></i>
                            </span>`;
-                    // --- SECURITY LOGIC END ---
 
                     const overallStatus = r.readings.every(rd => rd.status === 'pass') 
                         ? '<span class="text-green-600 font-bold">PASS</span>' 
@@ -1744,4 +1752,5 @@
     </script>
 </body>
 </html>
+
 
