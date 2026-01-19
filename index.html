@@ -912,6 +912,28 @@
                 window.updateStatusUI(true);
             },
 
+            async logUserActivity(user, actionType) {
+        if (window.state.isOffline) return; // ถ้า Offline ไม่ต้องส่ง หรือจะเก็บลง Local ก่อนก็ได้
+        
+        try {
+            const payload = {
+                id: user.id,
+                name: user.name,
+                role: user.role,
+                action: actionType, // "Login" หรือ "Logout"
+                note: navigator.userAgent // เก็บข้อมูล Browser/Device คร่าวๆ
+            };
+            
+            // ส่งแบบ Fire & Forget (ไม่ต้องรอผลลัพธ์เพื่อความลื่นไหล)
+            fetch(GAS_API_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'save_login', payload: payload })
+            }).catch(e => console.warn("Log failed:", e));
+            
+        } catch (e) {
+            console.error("Activity Log Error:", e);
+        }
+    },
            // --- แก้ไขใน object Service ---
 
             async syncUsersOnly() {
@@ -1115,6 +1137,7 @@
                 }
                 
                 this.setSession(user);
+                Service.logUserActivity(user, "Login");
                 return true;
             },
             
@@ -1147,9 +1170,13 @@
             },
 
             logout() {
+                if (window.state.user) {
+                    Service.logUserActivity(window.state.user, "Logout");
+                }
+                
                 window.state.user = null;
                 localStorage.removeItem('currentUser');
-                location.reload(); 
+                location.reload() 
             },
 
             async saveUser() {
@@ -1983,3 +2010,4 @@
             else if (type === 'info') { bgClass = 'toast-info'; content = `<div class="flex items-center gap-2"><i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i><span>${msg}</span></div>`; } 
             else if (type === 'undo') { bgClass = 'toast-undo'; content = `<div class="flex items-center gap-2"><span>${msg}</span></div>`; } 
             else if (type === 'error') { bgClass = 'toast-error'; content = `<div class="flex items-center gap-2"><i data-lucide="alert-circle" class="w-5 h-5"></i><span>${msg}</span>
+
