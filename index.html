@@ -364,6 +364,7 @@
                                 <th class="p-3 sortable" onclick="handleSortConfig('users', 'id', this)">Username (ID) <i data-lucide="arrow-up-down" class="sort-icon"></i></th>
                                 <th class="p-3 sortable" onclick="handleSortConfig('users', 'name', this)">Name <i data-lucide="arrow-up-down" class="sort-icon"></i></th>
                                 <th class="p-3 sortable" onclick="handleSortConfig('users', 'role', this)">Role <i data-lucide="arrow-up-down" class="sort-icon"></i></th>
+                                <th class="p-3 text-slate-500">Password (Hash)</th>
                                 <th class="p-3 text-center sortable" onclick="handleSortConfig('users', 'isActive', this)">Status <i data-lucide="arrow-up-down" class="sort-icon"></i></th>
                                 <th class="p-3 text-center">Action</th>
                             </tr>
@@ -882,7 +883,7 @@
             renderUsersTable() {
                 const tbody = document.getElementById('table-users');
                 if(!window.state.user || window.state.user.role !== 'admin') {
-                    tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-red-400">Restricted Access</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-red-400">Restricted Access</td></tr>';
                     return;
                 }
 
@@ -897,13 +898,18 @@
                     
                     const btnEdit = `<button onclick="AuthManager.editUser('${escapeHtml(u.id)}')" class="text-blue-500 hover:bg-blue-50 px-2 py-1 rounded text-xs border border-blue-200 mr-1">Edit</button>`;
 
+                    const shortPass = u.password ? (u.password.substring(0, 10) + '...') : '-';
+
                     return `
-                        <tr class="${!u.isActive ? 'bg-slate-50 opacity-75' : ''}">
+                        <tr class="${!u.isActive ? 'bg-slate-50 opacity-75' : ''} border-b border-slate-100">
                             <td class="p-3 font-mono font-bold text-slate-700">${escapeHtml(u.id)}</td>
                             <td class="p-3">${escapeHtml(u.name)}</td>
                             <td class="p-3 capitalize">${escapeHtml(u.role)}</td>
+                            <td class="p-3 font-mono text-[10px] text-slate-400 break-all" title="${escapeHtml(u.password)}">
+                                ${shortPass}
+                            </td>
                             <td class="p-3 text-center">${statusBadge}</td>
-                            <td class="p-3 text-center">${btnEdit} ${btnAction}</td>
+                            <td class="p-3 text-center whitespace-nowrap">${btnEdit} ${btnAction}</td>
                         </tr>
                     `;
                 }).join('');
